@@ -134,7 +134,7 @@ on the data migration.
 
 ## Install
 
-Add `[datomic-type-extensions "2018-04-17"]` to `:dependencies` in your `project.clj`.
+Add `[datomic-type-extensions "2018-04-18"]` to `:dependencies` in your `project.clj`.
 
 ## License
 
