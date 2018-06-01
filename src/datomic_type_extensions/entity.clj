@@ -46,8 +46,8 @@
                                   (wrap (.valAt entity k not-found) attr-types)))
 
   datomic.Entity
-  (db [_]                 (.db entity))
-  (get [_ k]              (wrap (.get entity k)))
+  (db [_]                 (assoc (.db entity) :datomic-type-extensions.api/attr-types attr-types))
+  (get [_ k]              (wrap (.get entity k) attr-types))
   (keySet [_]             (.keySet entity))
   (touch [this]           (do (.touch entity)
                               (reset! touched? true)
