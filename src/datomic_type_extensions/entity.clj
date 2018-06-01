@@ -36,9 +36,7 @@
   (entryAt [_ k]          (let [v (either (deserialize-attr entity attr-types k)
                                           (some-> entity (.entryAt k) .val (wrap attr-types)))]
                             (when (some? v) (first {k v}))))
-  (empty [_]              (.empty entity))
-  (assoc [_ k v]          (.assoc entity k v))
-  (cons  [_ x]            (.cons entity x))
+  (empty [_]              (wrap (.empty entity) attr-types))
   (count [_]              (.count entity))
 
   clojure.lang.ILookup

@@ -154,7 +154,10 @@
       (is (= (.valAt wrapped-entity :user/email) "foo@example.com"))
       (is (= (.valAt wrapped-entity :user/email :not-found) "foo@example.com"))
       (is (nil? (.valAt wrapped-entity :user/missing-attr)))
-      (is (= (.valAt wrapped-entity :user/missing-attr :not-found) :not-found))))
+      (is (= (.valAt wrapped-entity :user/missing-attr :not-found) :not-found)))
+
+    (testing "keeps type when emptied"
+      (is (= wrapped-entity (empty wrapped-entity)))))
 
   (testing "can use entity lookup ref"
     (is (not (nil? (api/entity (d/db (create-populated-conn))
