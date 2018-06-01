@@ -196,7 +196,11 @@
                 :user/created-at #time/inst "2017-01-01T00:00:00Z"
                 :user/email "foo@example.com"}
                (edn/read-string {:readers *data-readers*}
-                                (pr-str (d/touch (first (:client/users wrapped-entity)))))))))))
+                                (pr-str (d/touch (first (:client/users wrapped-entity)))))))))
+
+    (testing "hashes differently"
+      (is (not= (hash datomic-entity)
+                (hash wrapped-entity))))))
 
 (deftest pull
   (is (= {:client/users [{:user/created-at #time/inst "2017-01-01T00:00:00Z"}]}

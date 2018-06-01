@@ -19,7 +19,7 @@
 
 (deftype TypeExtendedEntityMap [^EntityMap entity attr-types touched?]
   Object
-  (hashCode [_]           (.hashCode entity))
+  (hashCode [_]           (hash [(.hashCode entity) attr-types]))
   (equals [_ o]           (and (instance? TypeExtendedEntityMap o)
                                (.equiv entity (.entity o))))
 
