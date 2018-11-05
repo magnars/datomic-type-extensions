@@ -1,5 +1,7 @@
 # Datomic type extensions
 
+<img align="right" width=150 src="https://upload.wikimedia.org/wikipedia/en/b/bf/Dead_Kennedys_-_Give_Me_Convenience_or_Give_Me_Death_cover.jpg">
+
 This Clojure library provides custom types for your Datomic attributes. It does
 this by wrapping a leaky abstraction around your regular Datomic API.
 
