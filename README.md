@@ -32,6 +32,8 @@ Oh yes. Let's look at some ways this abstraction leaks:
 
 - Where-clauses in queries see serialized values.
 
+- Params to queries are not serialized for you.
+
 - Datoms (as returned by `:tx-data`, indexes, and the log) are not
   deserialized.
 
