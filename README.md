@@ -26,6 +26,8 @@ this by wrapping a leaky abstraction around your regular Datomic API.
 
 - Entities returned by `d/entity` will lazily deserialize their types.
 
+Oh, the convenience!
+
 ### Did you say leaky abstraction?
 
 Oh yes. Let's look at some ways this abstraction leaks:
