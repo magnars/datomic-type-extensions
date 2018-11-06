@@ -17,7 +17,7 @@
   (when-let [type (get attr-types attr)]
     (types/deserialize type (attr entity))))
 
-(deftype TypeExtendedEntityMap [^EntityMap entity attr-types]
+(deftype TypeExtendedEntityMap [^EntityMap entity attr-types touched?]
   Object
   (hashCode [_]           (.hashCode entity))
   (equals [_ o]           (and (instance? TypeExtendedEntityMap o)
@@ -51,16 +51,21 @@
   (db [_]                 (.db entity))
   (get [_ k]              (wrap (.get entity k)))
   (keySet [_]             (.keySet entity))
-  (touch [this]           (do (.touch entity) this)))
+  (touch [this]           (do (.touch entity)
+                              (reset! touched? true)
+                              this)))
 
 (defmethod print-method TypeExtendedEntityMap [entity writer]
-  (print-method (into {:db/id (:db/id entity)} entity) writer))
+  (print-method (merge {:db/id (:db/id entity)}
+                       (when @(.-touched? entity)
+                         (into {} entity)))
+                writer))
 
 (defn wrap
   [x attr-types]
   (cond
     (instance? datomic.Entity x)
-    (TypeExtendedEntityMap. x attr-types)
+    (TypeExtendedEntityMap. x attr-types (atom false))
 
     (coll? x)
     (set (map #(wrap % attr-types) x))

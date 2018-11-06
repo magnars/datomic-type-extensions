@@ -173,16 +173,27 @@
       (is (= #time/inst "2017-01-01T00:00:00Z"
              (-> wrapped-entity :client/users first :user/created-at))))
 
-    (testing "printing shows deserialized value"
-      (is (= (let [client-db-id (:db/id datomic-entity)
-                   user-db-id (:db/id (first (:client/users datomic-entity)))]
-               {:client/id :the-client
-                :client/users #{{:db/id user-db-id
-                                 :user/created-at #time/inst "2017-01-01T00:00:00Z"
-                                 :user/email "foo@example.com"}}
-                :db/id client-db-id})
-             (edn/read-string {:readers *data-readers*}
-                              (pr-str wrapped-entity)))))))
+    (testing "printing"
+      (testing "defaults to only show :db/id"
+        (is (= (let [client-db-id (:db/id datomic-entity)]
+                 {:db/id client-db-id})
+               (edn/read-string (pr-str wrapped-entity)))))
+
+      (testing "shows all attributes when entity has been touched"
+        (is (= (let [client-db-id (:db/id datomic-entity)
+                     user-db-id (:db/id (first (:client/users datomic-entity)))]
+                 {:client/id :the-client
+                  :client/users #{{:db/id user-db-id}}
+                  :db/id client-db-id})
+               (edn/read-string {:readers *data-readers*}
+                                (pr-str (d/touch wrapped-entity))))))
+
+      (testing "shows deserialized value of type extended attributes"
+        (is (= {:db/id (:db/id (first (:client/users datomic-entity)))
+                :user/created-at #time/inst "2017-01-01T00:00:00Z"
+                :user/email "foo@example.com"}
+               (edn/read-string {:readers *data-readers*}
+                                (pr-str (d/touch (first (:client/users wrapped-entity)))))))))))
 
 (deftest pull
   (is (= {:client/users [{:user/created-at #time/inst "2017-01-01T00:00:00Z"}]}
