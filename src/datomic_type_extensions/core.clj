@@ -11,9 +11,16 @@
       form)
     form))
 
+(defn apply-to-value [f val]
+  (cond
+    (set? val) (set (map f val))
+    (list? val) (map f val)
+    (vector? val) (mapv f val)
+    :else (f val)))
+
 (defn- update-attr [f form [k type]]
   (if (get form k)
-    (update form k #(f type %))
+    (update form k #(apply-to-value (partial f type) %))
     form))
 
 (defn serialize-tx-data [attr-types tx-data]
