@@ -22,6 +22,7 @@
 (def attr-types
   {:user/created-at :java.time/instant
    :user/updated-at :java.time/instant
+   :user/demands :keyword-backed-by-string
    :client/id :keyword-backed-by-string})
 
 (deftest serialize-tx-data
@@ -45,6 +46,10 @@
             [{:client/users [{:user/created-at #time/inst "2017-01-01T00:00:00Z"}
                              {:user/created-at #time/inst "2018-01-01T00:00:00Z"}]
               :client/admin {:user/created-at #time/inst "2016-01-01T00:00:00Z"}}]))))
+
+  (testing "multiple values"
+    (is (= [{:user/demands ["peace" "love" "happiness"]}]
+           (core/serialize-tx-data attr-types [{:user/demands [:peace :love :happiness]}]))))
 
   (testing "nested tx-data"
     (is (= {:conformity {:txs [[[:db/add 456 :client/id "the-client"]]]}}
@@ -86,6 +91,9 @@
     :db/valueType :db.type/string
     :db/unique :db.unique/identity
     :db/cardinality :db.cardinality/one}
+   {:db/ident :user/demands
+    :dte/valueType :keyword-backed-by-string
+    :db/cardinality :db.cardinality/many}
    {:db/ident :user/created-at
     :dte/valueType :java.time/instant
     :db/cardinality :db.cardinality/one}
@@ -113,6 +121,7 @@
 (deftest find-attr-types
   (is (= {:user/created-at :java.time/instant
           :user/updated-at :java.time/instant
+          :user/demands :keyword-backed-by-string
           :client/id :keyword-backed-by-string}
          (api/find-attr-types (d/db (create-migrated-conn))))))
 
@@ -133,14 +142,16 @@
       conn
       [{:client/id :the-client
         :client/users [{:user/email "foo@example.com"
-                        :user/created-at #time/inst "2017-01-01T00:00:00Z"}]}])
+                        :user/created-at #time/inst "2017-01-01T00:00:00Z"
+                        :user/demands [:peace :love :happiness]}]}])
     conn))
 
 (deftest entity
   (let [wrapped-entity (api/entity (d/db (create-populated-conn))
                                    [:user/email "foo@example.com"])]
-    (testing "deserializes registered attribute"
-      (is (= #time/inst "2017-01-01T00:00:00Z" (:user/created-at wrapped-entity))))
+    (testing "deserializes registered attributes"
+      (is (= #time/inst "2017-01-01T00:00:00Z" (:user/created-at wrapped-entity)))
+      (is (= #{:peace :love :happiness} (set (:user/demands wrapped-entity)))))
 
     (testing "leaves unregistered attributes alone"
       (is (= "foo@example.com" (:user/email wrapped-entity))))
@@ -194,7 +205,8 @@
       (testing "shows deserialized value of type extended attributes"
         (is (= {:db/id (:db/id (first (:client/users datomic-entity)))
                 :user/created-at #time/inst "2017-01-01T00:00:00Z"
-                :user/email "foo@example.com"}
+                :user/email "foo@example.com"
+                :user/demands #{:peace :love :happiness}}
                (edn/read-string {:readers *data-readers*}
                                 (pr-str (d/touch (first (:client/users wrapped-entity)))))))))
 

@@ -1,5 +1,6 @@
 (ns datomic-type-extensions.entity
-  (:require [datomic-type-extensions.types :as types])
+  (:require [datomic-type-extensions.core :as core]
+            [datomic-type-extensions.types :as types])
   (:import datomic.query.EntityMap))
 
 (defmacro either
@@ -15,7 +16,7 @@
 
 (defn deserialize-attr [entity attr-types attr]
   (when-let [type (get attr-types attr)]
-    (types/deserialize type (attr entity))))
+    (core/apply-to-value (partial types/deserialize type) (attr entity))))
 
 (deftype TypeExtendedEntityMap [^EntityMap entity attr-types touched?]
   Object

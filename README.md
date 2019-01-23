@@ -140,9 +140,15 @@ on the data migration.
 
 ## Install
 
-Add `[datomic-type-extensions "2018-11-06"]` to `:dependencies` in your `project.clj`.
+Add `[datomic-type-extensions "2019-01-23"]` to `:dependencies` in your `project.clj`.
 
 ## Changes
+
+#### From 2018-11-06 to 2019-01-23
+
+Bugfixes:
+
+- Fix serialization / deserialization of  multi-value attributes (i.e. :db.cardinality/many)
 
 #### From 2018-04-18 to 2018-11-06
 
