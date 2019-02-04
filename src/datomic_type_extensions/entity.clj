@@ -15,8 +15,9 @@
 (declare wrap)
 
 (defn deserialize-attr [entity attr-types attr]
-  (when-let [type (get attr-types attr)]
-    (core/apply-to-value (partial types/deserialize type) (attr entity))))
+  (when-let [val (attr entity)]
+    (when-let [type (get attr-types attr)]
+      (core/apply-to-value (partial types/deserialize type) val))))
 
 (deftype TypeExtendedEntityMap [^EntityMap entity attr-types touched?]
   Object
