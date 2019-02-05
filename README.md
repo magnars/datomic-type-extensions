@@ -140,9 +140,15 @@ on the data migration.
 
 ## Install
 
-Add `[datomic-type-extensions "2019-01-23"]` to `:dependencies` in your `project.clj`.
+Add `[datomic-type-extensions "2019-02-05"]` to `:dependencies` in your `project.clj`.
 
 ## Changes
+
+#### From 2019-01-23 to 2019-02-05
+
+Bugfixes:
+
+- Fix lookup of missing serialized attribute.
 
 #### From 2018-11-06 to 2019-01-23
 
