@@ -94,6 +94,9 @@
    {:db/ident :user/demands
     :dte/valueType :keyword-backed-by-string
     :db/cardinality :db.cardinality/many}
+   {:db/ident :user/leaves-empty
+    :dte/valueType :keyword-backed-by-string
+    :db/cardinality :db.cardinality/many}
    {:db/ident :user/created-at
     :dte/valueType :java.time/instant
     :db/cardinality :db.cardinality/one}
@@ -122,6 +125,7 @@
   (is (= {:user/created-at :java.time/instant
           :user/updated-at :java.time/instant
           :user/demands :keyword-backed-by-string
+          :user/leaves-empty :keyword-backed-by-string
           :client/id :keyword-backed-by-string}
          (api/find-attr-types (d/db (create-migrated-conn))))))
 
@@ -165,7 +169,8 @@
       (is (= (.valAt wrapped-entity :user/email) "foo@example.com"))
       (is (= (.valAt wrapped-entity :user/email :not-found) "foo@example.com"))
       (is (nil? (.valAt wrapped-entity :user/missing-attr)))
-      (is (= (.valAt wrapped-entity :user/missing-attr :not-found) :not-found)))
+      (is (= (.valAt wrapped-entity :user/missing-attr :not-found) :not-found))
+      (is (nil? (.valAt wrapped-entity :user/leaves-empty))))
 
     (testing "keeps type when emptied"
       (is (= wrapped-entity (empty wrapped-entity)))))
