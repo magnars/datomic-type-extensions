@@ -12,8 +12,8 @@
 (defn find-var->type-mapping [query attr-types]
   (let [where-clauses (next (drop-while #(not= :where %) query))]
     (->> (keep find-binding where-clauses)
-         (keep (fn [[v a]] (when-let [type (attr-types a)]
-                             [v type])))
+         (keep (fn [[v a]] (when-let [attr-type (attr-types a)]
+                             [v (:dte/valueType attr-type)])))
          (into {}))))
 
 (defn deserialization-pattern [query attr-types]

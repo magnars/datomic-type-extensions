@@ -18,13 +18,15 @@
        form))
    tx))
 
+(defn query-attr-types [db]
+  (->> (for [attr (->> (d/q '[:find [?e ...] :where [?e :dte/valueType]] db)
+                       (map #(d/entity db %)))]
+         [(:db/ident attr) (select-keys attr #{:db/cardinality :dte/valueType})])
+       (into {})))
+
 (defn find-attr-types [db]
   (or (::attr-types db)
-      (into {} (d/q '[:find ?ident ?type
-                      :where
-                      [?e :dte/valueType ?type]
-                      [?e :db/ident ?ident]]
-                    db))))
+      (query-attr-types db)))
 
 (defn init! [conn]
   (when-not (d/entity (d/db conn) :dte/valueType)

@@ -2,10 +2,14 @@
   (:require [clojure.test :refer [deftest is testing]]
             [datomic-type-extensions.query :as sut]))
 
+(defn attr-type [value-type]
+  {:dte/valueType value-type
+   :db/cardinality :db.cardinality/one})
+
 (def attr-types
-  {:user/created-at :java.time/instant
-   :user/updated-at :java.time/instant
-   :client/id :keyword-backed-by-string})
+  {:user/created-at (attr-type :java.time/instant)
+   :user/updated-at (attr-type :java.time/instant)
+   :client/id (attr-type :keyword-backed-by-string)})
 
 (deftest deserialization-pattern
   (testing "a single value"

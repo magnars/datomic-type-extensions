@@ -3,24 +3,27 @@
             [datomic.api :as d]
             [datomic-type-extensions.types :as types]))
 
+(defn apply-to-value [f attr-type val]
+  (case (:db/cardinality attr-type)
+    :db.cardinality/one (f val)
+    :db.cardinality/many (cond
+                           (set? val) (set (map f val))
+                           (list? val) (map f val)
+                           (vector? val) (mapv f val)
+                           :else (f val))))
+
 (defn serialize-assertion-tx [form attr-types]
   (if-let [[op e a v] (and (vector? form) form)]
-    (if-let [type (and (#{:db/add :db/retract} op)
-                       (get attr-types a))]
-      (update form 3 #(types/serialize type %))
-      form)
+    (let [attr-type (get attr-types a)]
+      (if (and (#{:db/add :db/retract} op)
+               (:dte/valueType attr-type))
+        (update form 3 #(apply-to-value (partial types/serialize (:dte/valueType attr-type)) attr-type %))
+        form))
     form))
-
-(defn apply-to-value [f val]
-  (cond
-    (set? val) (set (map f val))
-    (list? val) (map f val)
-    (vector? val) (mapv f val)
-    :else (f val)))
 
 (defn- update-attr [f form [k type]]
   (if (get form k)
-    (update form k #(apply-to-value (partial f type) %))
+    (update form k #(apply-to-value (partial f (:dte/valueType type)) type %))
     form))
 
 (defn serialize-tx-data [attr-types tx-data]
@@ -41,7 +44,7 @@
    form))
 
 (defn serialize-lookup-ref [attr-types eid]
-  (if-let [type (and (vector? eid)
+  (if-let [attr-type (and (vector? eid)
                      (attr-types (first eid)))]
-    (update eid 1 #(types/serialize type %))
+    (update eid 1 #(types/serialize (:dte/valueType attr-type) %))
     eid))

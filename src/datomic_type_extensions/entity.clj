@@ -16,8 +16,10 @@
 
 (defn deserialize-attr [entity attr-types attr]
   (when-let [val (attr entity)]
-    (when-let [type (get attr-types attr)]
-      (core/apply-to-value (partial types/deserialize type) val))))
+    (when-let [attr-type (get attr-types attr)]
+      (core/apply-to-value (partial types/deserialize (:dte/valueType attr-type))
+                           attr-type
+                           val))))
 
 (deftype TypeExtendedEntityMap [^EntityMap entity attr-types touched?]
   Object

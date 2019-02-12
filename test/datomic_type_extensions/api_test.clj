@@ -19,23 +19,38 @@
 (defmethod types/serialize :keyword-backed-by-string [_ kw] (name kw))
 (defmethod types/deserialize :keyword-backed-by-string [_ s] (keyword s))
 
+;; :edn-backed-by-string
+
+(defmethod types/get-backing-datomic-type :edn-backed-by-string [_] :db.type/string)
+(defmethod types/serialize :edn-backed-by-string [_ x] (pr-str x))
+(defmethod types/deserialize :edn-backed-by-string [_ x] (clojure.edn/read-string x))
+
+(defn attr-type [value-type & [cardinality]]
+  {:dte/valueType value-type
+   :db/cardinality (or cardinality :db.cardinality/one)})
+
 (def attr-types
-  {:user/created-at :java.time/instant
-   :user/updated-at :java.time/instant
-   :user/demands :keyword-backed-by-string
-   :client/id :keyword-backed-by-string})
+  {:user/created-at (attr-type :java.time/instant)
+   :user/updated-at (attr-type :java.time/instant)
+   :user/demands (attr-type :keyword-backed-by-string :db.cardinality/many)
+   :user/edn (attr-type :edn-backed-by-string)
+   :client/id (attr-type :keyword-backed-by-string)})
 
 (deftest serialize-tx-data
   (is (= [{:db/id 123 :user/created-at #inst "2017-01-01T00:00:00"}
           [:db/retract 123 :user/updated-at #inst "2017-02-02T00:00:00"]
           [:db/add 456 :client/id "the-client"]
-          [:db/add 123 :user/name "no serialization needed"]]
+          [:db/add 123 :user/name "no serialization needed"]
+          [:db/add 123 :user/demands ["peace" "love" "happiness"]]
+          [:db/add 123 :user/edn "[1 2 3]"]]
          (core/serialize-tx-data
           attr-types
           [{:db/id 123 :user/created-at #time/inst "2017-01-01T00:00:00Z"}
            [:db/retract 123 :user/updated-at #time/inst "2017-02-02T00:00:00Z"]
            [:db/add 456 :client/id :the-client]
-           [:db/add 123 :user/name "no serialization needed"]])))
+           [:db/add 123 :user/name "no serialization needed"]
+           [:db/add 123 :user/demands [:peace :love :happiness]]
+           [:db/add 123 :user/edn [1 2 3]]])))
 
   (testing "nested maps"
     (is (= [{:client/users [{:user/created-at #inst "2017-01-01T00:00:00.000-00:00"}
@@ -48,6 +63,10 @@
               :client/admin {:user/created-at #time/inst "2016-01-01T00:00:00Z"}}]))))
 
   (testing "multiple values"
+    (is (= [{:user/demands ["peace" "love" "happiness"]}]
+           (core/serialize-tx-data attr-types [{:user/demands [:peace :love :happiness]}]))))
+
+  (testing "edn value"
     (is (= [{:user/demands ["peace" "love" "happiness"]}]
            (core/serialize-tx-data attr-types [{:user/demands [:peace :love :happiness]}]))))
 
@@ -122,11 +141,11 @@
     conn))
 
 (deftest find-attr-types
-  (is (= {:user/created-at :java.time/instant
-          :user/updated-at :java.time/instant
-          :user/demands :keyword-backed-by-string
-          :user/leaves-empty :keyword-backed-by-string
-          :client/id :keyword-backed-by-string}
+  (is (= {:user/created-at (attr-type :java.time/instant)
+          :user/updated-at (attr-type :java.time/instant)
+          :user/demands (attr-type :keyword-backed-by-string :db.cardinality/many)
+          :user/leaves-empty (attr-type :keyword-backed-by-string :db.cardinality/many)
+          :client/id (attr-type :keyword-backed-by-string)}
          (api/find-attr-types (d/db (create-migrated-conn))))))
 
 (deftest transact-async
