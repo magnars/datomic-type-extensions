@@ -144,6 +144,12 @@ Add `[datomic-type-extensions "2019-02-05"]` to `:dependencies` in your `project
 
 ## Changes
 
+#### From 2019-02-05 to 2019-02-18
+
+Bugfixes:
+
+- Fix serialization / deserialization of multi-value attributes again
+
 #### From 2019-01-23 to 2019-02-05
 
 Bugfixes:
@@ -154,7 +160,7 @@ Bugfixes:
 
 Bugfixes:
 
-- Fix serialization / deserialization of  multi-value attributes (i.e. :db.cardinality/many)
+- Fix serialization / deserialization of multi-value attributes (i.e. :db.cardinality/many)
 
 #### From 2018-04-18 to 2018-11-06
 
