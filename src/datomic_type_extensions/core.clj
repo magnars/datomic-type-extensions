@@ -10,7 +10,8 @@
                            (set? val) (set (map f val))
                            (list? val) (map f val)
                            (vector? val) (mapv f val)
-                           :else (f val))))
+                           :else (throw (ex-info "Value must be either set, list or vector"
+                                                 {:attr-info attr-info :val val})))))
 
 (defn serialize-assertion-tx [form attr-infos]
   (if-let [[op e a v] (and (vector? form) form)]

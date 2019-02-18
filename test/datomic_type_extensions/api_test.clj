@@ -1,6 +1,6 @@
 (ns datomic-type-extensions.api-test
   (:require [clojure.edn :as edn]
-            [clojure.test :refer [deftest is testing]]
+            [clojure.test :refer [deftest testing is are]]
             [datomic.api :as d]
             [datomic-type-extensions.api :as api]
             [datomic-type-extensions.core :as core]
@@ -35,6 +35,24 @@
    :user/demands (attr-info :keyword-backed-by-string :db.cardinality/many)
    :user/edn (attr-info :edn-backed-by-string)
    :client/id (attr-info :keyword-backed-by-string)})
+
+(deftest apply-to-value
+  (are [cardinality value result] (= result
+                                     (core/apply-to-value
+                                      str
+                                      {:db/cardinality cardinality}
+                                      value))
+    :db.cardinality/one 0 "0"
+    :db.cardinality/one [0 1 2] "[0 1 2]"
+    :db.cardinality/many [0 1 2] ["0" "1" "2"]
+    :db.cardinality/many '(0 1 2) '("0" "1" "2")
+    :db.cardinality/many #{0 1 2} #{"0" "1" "2"})
+
+  (is (thrown-with-msg?
+       Exception #"Value must be either set, list or vector"
+       (core/apply-to-value str
+                            {:db/cardinality :db.cardinality/many}
+                            1))))
 
 (deftest serialize-tx-data
   (is (= [{:db/id 123 :user/created-at #inst "2017-01-01T00:00:00"}
