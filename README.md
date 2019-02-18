@@ -140,7 +140,7 @@ on the data migration.
 
 ## Install
 
-Add `[datomic-type-extensions "2019-02-05"]` to `:dependencies` in your `project.clj`.
+Add `[datomic-type-extensions "2019-02-18"]` to `:dependencies` in your `project.clj`.
 
 ## Changes
 
