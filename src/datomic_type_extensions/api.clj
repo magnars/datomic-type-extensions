@@ -8,7 +8,7 @@
             [datomic-type-extensions.types :as types]
             [potemkin :refer [import-vars]]))
 
-;; store attr-types in db
+;; store attr-infos in db
 
 (defn add-backing-types [tx]
   (postwalk
@@ -18,15 +18,15 @@
        form))
    tx))
 
-(defn query-attr-types [db]
+(defn query-attr-infos [db]
   (->> (for [attr (->> (d/q '[:find [?e ...] :where [?e :dte/valueType]] db)
                        (map #(d/entity db %)))]
          [(:db/ident attr) (select-keys attr #{:db/cardinality :dte/valueType})])
        (into {})))
 
-(defn find-attr-types [db]
-  (or (::attr-types db)
-      (query-attr-types db)))
+(defn find-attr-infos [db]
+  (or (::attr-infos db)
+      (query-attr-infos db)))
 
 (defn init! [conn]
   (when-not (d/entity (d/db conn) :dte/valueType)
@@ -36,7 +36,7 @@
 
 (defn prepare-tx-data [db tx-data]
   (->> tx-data
-       (core/serialize-tx-data (find-attr-types db))
+       (core/serialize-tx-data (find-attr-infos db))
        (add-backing-types)))
 
 ;; datomic.api
@@ -51,27 +51,27 @@
   (d/with db (prepare-tx-data db tx-data)))
 
 (defn entity [db eid]
-  (let [attr-types (find-attr-types db)]
-    (entity/wrap (d/entity db (core/serialize-lookup-ref attr-types eid))
-                 attr-types)))
+  (let [attr-infos (find-attr-infos db)]
+    (entity/wrap (d/entity db (core/serialize-lookup-ref attr-infos eid))
+                 attr-infos)))
 
 (defn pull [db pattern eid]
-  (let [attr-types (find-attr-types db)]
-    (->> (d/pull db pattern (core/serialize-lookup-ref attr-types eid))
-         (core/deserialize attr-types))))
+  (let [attr-infos (find-attr-infos db)]
+    (->> (d/pull db pattern (core/serialize-lookup-ref attr-infos eid))
+         (core/deserialize attr-infos))))
 
 (defn pull-many [db pattern eids]
-  (let [attr-types (find-attr-types db)]
-    (->> (d/pull-many db pattern (map #(core/serialize-lookup-ref attr-types %) eids))
-         (core/deserialize attr-types))))
+  (let [attr-infos (find-attr-infos db)]
+    (->> (d/pull-many db pattern (map #(core/serialize-lookup-ref attr-infos %) eids))
+         (core/deserialize attr-infos))))
 
 (defn since [db t]
-  (let [attr-types (find-attr-types db)]
-    (assoc (d/since db t) ::attr-types attr-types)))
+  (let [attr-infos (find-attr-infos db)]
+    (assoc (d/since db t) ::attr-infos attr-infos)))
 
 (defn db [connection]
   (let [db (d/db connection)]
-    (assoc db ::attr-types (find-attr-types db))))
+    (assoc db ::attr-infos (find-attr-infos db))))
 
 (defn connect [uri]
   (let [conn (d/connect uri)]
@@ -82,11 +82,11 @@
   (let [db (first (:args query-map))
         _ (when-not (instance? datomic.db.Db db)
             (throw (Exception. "The first input must be a datomic DB so that datomic-type-extensions can deserialize.")))
-        attr-types (find-attr-types db)]
+        attr-infos (find-attr-infos db)]
     (query/deserialize-by-pattern
      (d/query query-map)
-     (query/deserialization-pattern (:query query-map) attr-types)
-     attr-types)))
+     (query/deserialization-pattern (:query query-map) attr-infos)
+     attr-infos)))
 
 (defn q [q & inputs]
   (query {:query q :args inputs}))
@@ -100,7 +100,7 @@
               ;; connect - implemented to init the :dte/valueType attr
               create-database
               datoms
-              ;; db - implemented to cache attr-types
+              ;; db - implemented to cache attr-infos
               delete-database
               entid
               entid-at
@@ -129,7 +129,7 @@
               resolve-tempid
               seek-datoms
               shutdown
-              ;; since - implemented to keep attr-types on the db
+              ;; since - implemented to keep attr-infos on the db
               since-t
               squuid
               squuid-time-millis

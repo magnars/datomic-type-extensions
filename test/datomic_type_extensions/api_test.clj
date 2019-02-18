@@ -25,16 +25,16 @@
 (defmethod types/serialize :edn-backed-by-string [_ x] (pr-str x))
 (defmethod types/deserialize :edn-backed-by-string [_ x] (clojure.edn/read-string x))
 
-(defn attr-type [value-type & [cardinality]]
+(defn attr-info [value-type & [cardinality]]
   {:dte/valueType value-type
    :db/cardinality (or cardinality :db.cardinality/one)})
 
-(def attr-types
-  {:user/created-at (attr-type :java.time/instant)
-   :user/updated-at (attr-type :java.time/instant)
-   :user/demands (attr-type :keyword-backed-by-string :db.cardinality/many)
-   :user/edn (attr-type :edn-backed-by-string)
-   :client/id (attr-type :keyword-backed-by-string)})
+(def attr->attr-info
+  {:user/created-at (attr-info :java.time/instant)
+   :user/updated-at (attr-info :java.time/instant)
+   :user/demands (attr-info :keyword-backed-by-string :db.cardinality/many)
+   :user/edn (attr-info :edn-backed-by-string)
+   :client/id (attr-info :keyword-backed-by-string)})
 
 (deftest serialize-tx-data
   (is (= [{:db/id 123 :user/created-at #inst "2017-01-01T00:00:00"}
@@ -44,7 +44,7 @@
           [:db/add 123 :user/demands ["peace" "love" "happiness"]]
           [:db/add 123 :user/edn "[1 2 3]"]]
          (core/serialize-tx-data
-          attr-types
+          attr->attr-info
           [{:db/id 123 :user/created-at #time/inst "2017-01-01T00:00:00Z"}
            [:db/retract 123 :user/updated-at #time/inst "2017-02-02T00:00:00Z"]
            [:db/add 456 :client/id :the-client]
@@ -57,29 +57,29 @@
                             {:user/created-at #inst "2018-01-01T00:00:00.000-00:00"}]
              :client/admin {:user/created-at #inst "2016-01-01T00:00:00"}}]
            (core/serialize-tx-data
-            attr-types
+            attr->attr-info
             [{:client/users [{:user/created-at #time/inst "2017-01-01T00:00:00Z"}
                              {:user/created-at #time/inst "2018-01-01T00:00:00Z"}]
               :client/admin {:user/created-at #time/inst "2016-01-01T00:00:00Z"}}]))))
 
   (testing "multiple values"
     (is (= [{:user/demands ["peace" "love" "happiness"]}]
-           (core/serialize-tx-data attr-types [{:user/demands [:peace :love :happiness]}]))))
+           (core/serialize-tx-data attr->attr-info [{:user/demands [:peace :love :happiness]}]))))
 
   (testing "edn value"
     (is (= [{:user/demands ["peace" "love" "happiness"]}]
-           (core/serialize-tx-data attr-types [{:user/demands [:peace :love :happiness]}]))))
+           (core/serialize-tx-data attr->attr-info [{:user/demands [:peace :love :happiness]}]))))
 
   (testing "nested tx-data"
     (is (= {:conformity {:txs [[[:db/add 456 :client/id "the-client"]]]}}
            (core/serialize-tx-data
-            attr-types
+            attr->attr-info
             {:conformity {:txs [[[:db/add 456 :client/id :the-client]]]}})))))
 
 (deftest serialize-lookup-ref
-  (is (= 123 (core/serialize-lookup-ref attr-types 123)))
+  (is (= 123 (core/serialize-lookup-ref attr->attr-info 123)))
   (is (= [:client/id "the-client"]
-         (core/serialize-lookup-ref attr-types [:client/id :the-client]))))
+         (core/serialize-lookup-ref attr->attr-info [:client/id :the-client]))))
 
 (deftest add-backing-types
   (is (= [{:db/ident :user/created-at
@@ -140,13 +140,13 @@
          deref)
     conn))
 
-(deftest find-attr-types
-  (is (= {:user/created-at (attr-type :java.time/instant)
-          :user/updated-at (attr-type :java.time/instant)
-          :user/demands (attr-type :keyword-backed-by-string :db.cardinality/many)
-          :user/leaves-empty (attr-type :keyword-backed-by-string :db.cardinality/many)
-          :client/id (attr-type :keyword-backed-by-string)}
-         (api/find-attr-types (d/db (create-migrated-conn))))))
+(deftest find-attr-infos
+  (is (= {:user/created-at (attr-info :java.time/instant)
+          :user/updated-at (attr-info :java.time/instant)
+          :user/demands (attr-info :keyword-backed-by-string :db.cardinality/many)
+          :user/leaves-empty (attr-info :keyword-backed-by-string :db.cardinality/many)
+          :client/id (attr-info :keyword-backed-by-string)}
+         (api/find-attr-infos (d/db (create-migrated-conn))))))
 
 (deftest transact-async
   (is (= {:user/created-at #inst "2017-01-01T00:00:00"}
