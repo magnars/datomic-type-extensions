@@ -13,9 +13,9 @@
                            :else (throw (ex-info "Value must be either set, list or vector"
                                                  {:attr-info attr-info :val val})))))
 
-(defn serialize-assertion-tx [form attr-infos]
+(defn serialize-assertion-tx [form attr->attr-info]
   (if-let [[op e a v] (and (vector? form) form)]
-    (let [attr-info (get attr-infos a)]
+    (let [attr-info (get attr->attr-info a)]
       (if (and (#{:db/add :db/retract} op)
                (:dte/valueType attr-info))
         (update form 3 #(apply-to-value (partial types/serialize (:dte/valueType attr-info)) attr-info %))
@@ -27,25 +27,25 @@
     (update form k #(apply-to-value (partial f (:dte/valueType attr-info)) attr-info %))
     form))
 
-(defn serialize-tx-data [attr-infos tx-data]
+(defn serialize-tx-data [attr->attr-info tx-data]
   (postwalk
    (fn [form]
      (cond
-       (map? form) (reduce #(update-attr types/serialize %1 %2) form attr-infos)
-       (vector? form) (serialize-assertion-tx form attr-infos)
+       (map? form) (reduce #(update-attr types/serialize %1 %2) form attr->attr-info)
+       (vector? form) (serialize-assertion-tx form attr->attr-info)
        :else form))
    tx-data))
 
-(defn deserialize [attr-infos form]
+(defn deserialize [attr->attr-info form]
   (postwalk
    (fn [form]
      (if (map? form)
-       (reduce #(update-attr types/deserialize %1 %2) form attr-infos)
+       (reduce #(update-attr types/deserialize %1 %2) form attr->attr-info)
        form))
    form))
 
-(defn serialize-lookup-ref [attr-infos eid]
+(defn serialize-lookup-ref [attr->attr-info eid]
   (if-let [attr-info (and (vector? eid)
-                     (attr-infos (first eid)))]
+                     (attr->attr-info (first eid)))]
     (update eid 1 #(types/serialize (:dte/valueType attr-info) %))
     eid))

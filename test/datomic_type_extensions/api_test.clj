@@ -158,13 +158,13 @@
          deref)
     conn))
 
-(deftest find-attr-infos
+(deftest find-attr->attr-info
   (is (= {:user/created-at (attr-info :java.time/instant)
           :user/updated-at (attr-info :java.time/instant)
           :user/demands (attr-info :keyword-backed-by-string :db.cardinality/many)
           :user/leaves-empty (attr-info :keyword-backed-by-string :db.cardinality/many)
           :client/id (attr-info :keyword-backed-by-string)}
-         (api/find-attr-infos (d/db (create-migrated-conn))))))
+         (api/find-attr->attr-info (d/db (create-migrated-conn))))))
 
 (deftest transact-async
   (is (= {:user/created-at #inst "2017-01-01T00:00:00"}
