@@ -9,16 +9,16 @@
     (and (seq? e) (= 'get-else (first e)))
     [a (nth e 3)]))
 
-(defn find-var->type-mapping [query attr-types]
+(defn find-var->type-mapping [query attr->attr-info]
   (let [where-clauses (next (drop-while #(not= :where %) query))]
     (->> (keep find-binding where-clauses)
-         (keep (fn [[v a]] (when-let [type (attr-types a)]
-                             [v type])))
+         (keep (fn [[v a]] (when-let [attr-info (attr->attr-info a)]
+                             [v (:dte/valueType attr-info)])))
          (into {}))))
 
-(defn deserialization-pattern [query attr-types]
+(defn deserialization-pattern [query attr->attr-info]
   (let [find-clauses (next (take-while #(not (#{:in :where} %)) query))
-        var->type (find-var->type-mapping query attr-types)
+        var->type (find-var->type-mapping query attr->attr-info)
         find-pattern #(if (and (seq? %) (= 'pull (first %)))
                         {:type :deserializable-form}
                         (var->type %))]
@@ -35,22 +35,22 @@
        :pattern {:type :tuple
                  :entries (mapv find-pattern find-clauses)}})))
 
-(defn deserialize-by-pattern [form pattern attr-types]
+(defn deserialize-by-pattern [form pattern attr->attr-info]
   (cond
     (keyword? pattern)
     (types/deserialize pattern form)
 
     (= (:type pattern) :vector)
-    (mapv #(deserialize-by-pattern % (:pattern pattern) attr-types) form)
+    (mapv #(deserialize-by-pattern % (:pattern pattern) attr->attr-info) form)
 
     (= (:type pattern) :tuple)
-    (mapv #(deserialize-by-pattern %1 %2 attr-types) form (:entries pattern))
+    (mapv #(deserialize-by-pattern %1 %2 attr->attr-info) form (:entries pattern))
 
     (= (:type pattern) :set)
-    (set (map #(deserialize-by-pattern % (:pattern pattern) attr-types) form))
+    (set (map #(deserialize-by-pattern % (:pattern pattern) attr->attr-info) form))
 
     (= (:type pattern) :deserializable-form)
-    (core/deserialize attr-types form)
+    (core/deserialize attr->attr-info form)
 
     :else form))
 

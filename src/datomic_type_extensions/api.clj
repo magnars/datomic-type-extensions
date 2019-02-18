@@ -8,7 +8,7 @@
             [datomic-type-extensions.types :as types]
             [potemkin :refer [import-vars]]))
 
-;; store attr-types in db
+;; store attr->attr-info in db
 
 (defn add-backing-types [tx]
   (postwalk
@@ -18,13 +18,15 @@
        form))
    tx))
 
-(defn find-attr-types [db]
-  (or (::attr-types db)
-      (into {} (d/q '[:find ?ident ?type
-                      :where
-                      [?e :dte/valueType ?type]
-                      [?e :db/ident ?ident]]
-                    db))))
+(defn query-attr->attr-info [db]
+  (->> (for [attr (->> (d/q '[:find [?e ...] :where [?e :dte/valueType]] db)
+                       (map #(d/entity db %)))]
+         [(:db/ident attr) (select-keys attr #{:db/cardinality :dte/valueType})])
+       (into {})))
+
+(defn find-attr->attr-info [db]
+  (or (::attr->attr-info db)
+      (query-attr->attr-info db)))
 
 (defn init! [conn]
   (when-not (d/entity (d/db conn) :dte/valueType)
@@ -34,7 +36,7 @@
 
 (defn prepare-tx-data [db tx-data]
   (->> tx-data
-       (core/serialize-tx-data (find-attr-types db))
+       (core/serialize-tx-data (find-attr->attr-info db))
        (add-backing-types)))
 
 ;; datomic.api
@@ -49,27 +51,27 @@
   (d/with db (prepare-tx-data db tx-data)))
 
 (defn entity [db eid]
-  (let [attr-types (find-attr-types db)]
-    (entity/wrap (d/entity db (core/serialize-lookup-ref attr-types eid))
-                 attr-types)))
+  (let [attr->attr-info (find-attr->attr-info db)]
+    (entity/wrap (d/entity db (core/serialize-lookup-ref attr->attr-info eid))
+                 attr->attr-info)))
 
 (defn pull [db pattern eid]
-  (let [attr-types (find-attr-types db)]
-    (->> (d/pull db pattern (core/serialize-lookup-ref attr-types eid))
-         (core/deserialize attr-types))))
+  (let [attr->attr-info (find-attr->attr-info db)]
+    (->> (d/pull db pattern (core/serialize-lookup-ref attr->attr-info eid))
+         (core/deserialize attr->attr-info))))
 
 (defn pull-many [db pattern eids]
-  (let [attr-types (find-attr-types db)]
-    (->> (d/pull-many db pattern (map #(core/serialize-lookup-ref attr-types %) eids))
-         (core/deserialize attr-types))))
+  (let [attr->attr-info (find-attr->attr-info db)]
+    (->> (d/pull-many db pattern (map #(core/serialize-lookup-ref attr->attr-info %) eids))
+         (core/deserialize attr->attr-info))))
 
 (defn since [db t]
-  (let [attr-types (find-attr-types db)]
-    (assoc (d/since db t) ::attr-types attr-types)))
+  (let [attr->attr-info (find-attr->attr-info db)]
+    (assoc (d/since db t) ::attr->attr-info attr->attr-info)))
 
 (defn db [connection]
   (let [db (d/db connection)]
-    (assoc db ::attr-types (find-attr-types db))))
+    (assoc db ::attr->attr-info (find-attr->attr-info db))))
 
 (defn connect [uri]
   (let [conn (d/connect uri)]
@@ -80,11 +82,11 @@
   (let [db (first (:args query-map))
         _ (when-not (instance? datomic.db.Db db)
             (throw (Exception. "The first input must be a datomic DB so that datomic-type-extensions can deserialize.")))
-        attr-types (find-attr-types db)]
+        attr->attr-info (find-attr->attr-info db)]
     (query/deserialize-by-pattern
      (d/query query-map)
-     (query/deserialization-pattern (:query query-map) attr-types)
-     attr-types)))
+     (query/deserialization-pattern (:query query-map) attr->attr-info)
+     attr->attr-info)))
 
 (defn q [q & inputs]
   (query {:query q :args inputs}))
@@ -98,7 +100,7 @@
               ;; connect - implemented to init the :dte/valueType attr
               create-database
               datoms
-              ;; db - implemented to cache attr-types
+              ;; db - implemented to cache attr->attr-info
               delete-database
               entid
               entid-at
@@ -127,7 +129,7 @@
               resolve-tempid
               seek-datoms
               shutdown
-              ;; since - implemented to keep attr-types on the db
+              ;; since - implemented to keep attr->attr-info on the db
               since-t
               squuid
               squuid-time-millis

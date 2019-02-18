@@ -1,6 +1,6 @@
 (ns datomic-type-extensions.api-test
   (:require [clojure.edn :as edn]
-            [clojure.test :refer [deftest is testing]]
+            [clojure.test :refer [deftest testing is are]]
             [datomic.api :as d]
             [datomic-type-extensions.api :as api]
             [datomic-type-extensions.core :as core]
@@ -19,48 +19,85 @@
 (defmethod types/serialize :keyword-backed-by-string [_ kw] (name kw))
 (defmethod types/deserialize :keyword-backed-by-string [_ s] (keyword s))
 
-(def attr-types
-  {:user/created-at :java.time/instant
-   :user/updated-at :java.time/instant
-   :user/demands :keyword-backed-by-string
-   :client/id :keyword-backed-by-string})
+;; :edn-backed-by-string
+
+(defmethod types/get-backing-datomic-type :edn-backed-by-string [_] :db.type/string)
+(defmethod types/serialize :edn-backed-by-string [_ x] (pr-str x))
+(defmethod types/deserialize :edn-backed-by-string [_ x] (clojure.edn/read-string x))
+
+(defn attr-info [value-type & [cardinality]]
+  {:dte/valueType value-type
+   :db/cardinality (or cardinality :db.cardinality/one)})
+
+(def attr->attr-info
+  {:user/created-at (attr-info :java.time/instant)
+   :user/updated-at (attr-info :java.time/instant)
+   :user/demands (attr-info :keyword-backed-by-string :db.cardinality/many)
+   :user/edn (attr-info :edn-backed-by-string)
+   :client/id (attr-info :keyword-backed-by-string)})
+
+(deftest apply-to-value
+  (are [cardinality value result] (= result
+                                     (core/apply-to-value
+                                      str
+                                      {:db/cardinality cardinality}
+                                      value))
+    :db.cardinality/one 0 "0"
+    :db.cardinality/one [0 1 2] "[0 1 2]"
+    :db.cardinality/many [0 1 2] ["0" "1" "2"]
+    :db.cardinality/many '(0 1 2) '("0" "1" "2")
+    :db.cardinality/many #{0 1 2} #{"0" "1" "2"})
+
+  (is (thrown-with-msg?
+       Exception #"Value must be either set, list or vector"
+       (core/apply-to-value str
+                            {:db/cardinality :db.cardinality/many}
+                            1))))
 
 (deftest serialize-tx-data
   (is (= [{:db/id 123 :user/created-at #inst "2017-01-01T00:00:00"}
           [:db/retract 123 :user/updated-at #inst "2017-02-02T00:00:00"]
           [:db/add 456 :client/id "the-client"]
-          [:db/add 123 :user/name "no serialization needed"]]
+          [:db/add 123 :user/name "no serialization needed"]
+          [:db/add 123 :user/demands ["peace" "love" "happiness"]]
+          [:db/add 123 :user/edn "[1 2 3]"]]
          (core/serialize-tx-data
-          attr-types
+          attr->attr-info
           [{:db/id 123 :user/created-at #time/inst "2017-01-01T00:00:00Z"}
            [:db/retract 123 :user/updated-at #time/inst "2017-02-02T00:00:00Z"]
            [:db/add 456 :client/id :the-client]
-           [:db/add 123 :user/name "no serialization needed"]])))
+           [:db/add 123 :user/name "no serialization needed"]
+           [:db/add 123 :user/demands [:peace :love :happiness]]
+           [:db/add 123 :user/edn [1 2 3]]])))
 
   (testing "nested maps"
     (is (= [{:client/users [{:user/created-at #inst "2017-01-01T00:00:00.000-00:00"}
                             {:user/created-at #inst "2018-01-01T00:00:00.000-00:00"}]
              :client/admin {:user/created-at #inst "2016-01-01T00:00:00"}}]
            (core/serialize-tx-data
-            attr-types
+            attr->attr-info
             [{:client/users [{:user/created-at #time/inst "2017-01-01T00:00:00Z"}
                              {:user/created-at #time/inst "2018-01-01T00:00:00Z"}]
               :client/admin {:user/created-at #time/inst "2016-01-01T00:00:00Z"}}]))))
 
   (testing "multiple values"
     (is (= [{:user/demands ["peace" "love" "happiness"]}]
-           (core/serialize-tx-data attr-types [{:user/demands [:peace :love :happiness]}]))))
+           (core/serialize-tx-data attr->attr-info [{:user/demands [:peace :love :happiness]}]))))
+
+  (testing "edn value"
+    (is (= [{:user/demands ["peace" "love" "happiness"]}]
+           (core/serialize-tx-data attr->attr-info [{:user/demands [:peace :love :happiness]}]))))
 
   (testing "nested tx-data"
     (is (= {:conformity {:txs [[[:db/add 456 :client/id "the-client"]]]}}
            (core/serialize-tx-data
-            attr-types
+            attr->attr-info
             {:conformity {:txs [[[:db/add 456 :client/id :the-client]]]}})))))
 
 (deftest serialize-lookup-ref
-  (is (= 123 (core/serialize-lookup-ref attr-types 123)))
+  (is (= 123 (core/serialize-lookup-ref attr->attr-info 123)))
   (is (= [:client/id "the-client"]
-         (core/serialize-lookup-ref attr-types [:client/id :the-client]))))
+         (core/serialize-lookup-ref attr->attr-info [:client/id :the-client]))))
 
 (deftest add-backing-types
   (is (= [{:db/ident :user/created-at
@@ -121,13 +158,13 @@
          deref)
     conn))
 
-(deftest find-attr-types
-  (is (= {:user/created-at :java.time/instant
-          :user/updated-at :java.time/instant
-          :user/demands :keyword-backed-by-string
-          :user/leaves-empty :keyword-backed-by-string
-          :client/id :keyword-backed-by-string}
-         (api/find-attr-types (d/db (create-migrated-conn))))))
+(deftest find-attr->attr-info
+  (is (= {:user/created-at (attr-info :java.time/instant)
+          :user/updated-at (attr-info :java.time/instant)
+          :user/demands (attr-info :keyword-backed-by-string :db.cardinality/many)
+          :user/leaves-empty (attr-info :keyword-backed-by-string :db.cardinality/many)
+          :client/id (attr-info :keyword-backed-by-string)}
+         (api/find-attr->attr-info (d/db (create-migrated-conn))))))
 
 (deftest transact-async
   (is (= {:user/created-at #inst "2017-01-01T00:00:00"}

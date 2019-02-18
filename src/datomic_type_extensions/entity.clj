@@ -14,42 +14,44 @@
 
 (declare wrap)
 
-(defn deserialize-attr [entity attr-types attr]
+(defn deserialize-attr [entity attr->attr-info attr]
   (when-let [val (attr entity)]
-    (when-let [type (get attr-types attr)]
-      (core/apply-to-value (partial types/deserialize type) val))))
+    (when-let [attr-info (get attr->attr-info attr)]
+      (core/apply-to-value (partial types/deserialize (:dte/valueType attr-info))
+                           attr-info
+                           val))))
 
-(deftype TypeExtendedEntityMap [^EntityMap entity attr-types touched?]
+(deftype TypeExtendedEntityMap [^EntityMap entity attr->attr-info touched?]
   Object
-  (hashCode [_]           (hash [(.hashCode entity) attr-types]))
+  (hashCode [_]           (hash [(.hashCode entity) attr->attr-info]))
   (equals [_ o]           (and (instance? TypeExtendedEntityMap o)
                                (.equiv entity (.entity o))))
 
   clojure.lang.Seqable
   (seq [_]                 (map (fn [[k v]]
-                                  [k (either (deserialize-attr entity attr-types k)
-                                             (wrap (.valAt entity k) attr-types))])
+                                  [k (either (deserialize-attr entity attr->attr-info k)
+                                             (wrap (.valAt entity k) attr->attr-info))])
                                 (.seq entity)))
 
   clojure.lang.Associative
   (equiv [_ o]            (and (instance? TypeExtendedEntityMap o)
                                (.equiv entity (.entity o))))
   (containsKey [_ k]      (.containsKey entity k))
-  (entryAt [_ k]          (let [v (either (deserialize-attr entity attr-types k)
-                                          (some-> entity (.entryAt k) .val (wrap attr-types)))]
+  (entryAt [_ k]          (let [v (either (deserialize-attr entity attr->attr-info k)
+                                          (some-> entity (.entryAt k) .val (wrap attr->attr-info)))]
                             (when (some? v) (first {k v}))))
-  (empty [_]              (wrap (.empty entity) attr-types))
+  (empty [_]              (wrap (.empty entity) attr->attr-info))
   (count [_]              (.count entity))
 
   clojure.lang.ILookup
-  (valAt [_ k]            (either (deserialize-attr entity attr-types k)
-                                  (wrap (.valAt entity k) attr-types)))
-  (valAt [_ k not-found]  (either (deserialize-attr entity attr-types k)
-                                  (wrap (.valAt entity k not-found) attr-types)))
+  (valAt [_ k]            (either (deserialize-attr entity attr->attr-info k)
+                                  (wrap (.valAt entity k) attr->attr-info)))
+  (valAt [_ k not-found]  (either (deserialize-attr entity attr->attr-info k)
+                                  (wrap (.valAt entity k not-found) attr->attr-info)))
 
   datomic.Entity
-  (db [_]                 (assoc (.db entity) :datomic-type-extensions.api/attr-types attr-types))
-  (get [_ k]              (wrap (.get entity k) attr-types))
+  (db [_]                 (assoc (.db entity) :datomic-type-extensions.api/attr->attr-info attr->attr-info))
+  (get [_ k]              (wrap (.get entity k) attr->attr-info))
   (keySet [_]             (.keySet entity))
   (touch [this]           (do (.touch entity)
                               (reset! touched? true)
@@ -62,12 +64,12 @@
                 writer))
 
 (defn wrap
-  [x attr-types]
+  [x attr->attr-info]
   (cond
     (instance? datomic.Entity x)
-    (TypeExtendedEntityMap. x attr-types (atom false))
+    (TypeExtendedEntityMap. x attr->attr-info (atom false))
 
     (coll? x)
-    (set (map #(wrap % attr-types) x))
+    (set (map #(wrap % attr->attr-info) x))
 
     :else x))
