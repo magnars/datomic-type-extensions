@@ -289,6 +289,17 @@
                    [{:client/users [:user/created-at]}]
                    [:client/id :the-client]))))
 
+(deftest filter
+  (is (= {:client/id :the-client
+          :client/users [{:user/created-at #time/inst "2017-01-01T00:00:00Z"}]}
+         (let [db (d/db (create-populated-conn))
+               the-client (api/entity db [:client/id :the-client])
+               keep-eids (into #{(:db/id the-client)}
+                               (map :db/id (:client/users the-client)))]
+           (api/pull (api/filter db (fn [_ datom] (some #{(:e datom)} keep-eids)))
+                     [:client/id {:client/users [:user/created-at]}]
+                     (:db/id the-client))))))
+
 (deftest q
   (is (= #{[#time/inst "2017-01-01T00:00:00Z"]}
          (api/q

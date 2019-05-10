@@ -66,8 +66,10 @@
          (core/deserialize attr->attr-info))))
 
 (defn since [db t]
-  (let [attr->attr-info (find-attr->attr-info db)]
-    (assoc (d/since db t) ::attr->attr-info attr->attr-info)))
+  (assoc (d/since db t) ::attr->attr-info (find-attr->attr-info db)))
+
+(defn filter [db pred]
+  (assoc (d/filter db pred) ::attr->attr-info (find-attr->attr-info db)))
 
 (defn db [connection]
   (let [db (d/db connection)]
@@ -106,7 +108,7 @@
               entid-at
               ;; entity - wraps datomic.Entity to deserialize attrs when accessed
               entity-db
-              filter
+              ;; filter - implemented to make sure attr->attr-info is preserved
               function
               gc-storage
               get-database-names
