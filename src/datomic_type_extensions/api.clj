@@ -71,6 +71,9 @@
 (defn filter [db pred]
   (assoc (d/filter db pred) ::attr->attr-info (find-attr->attr-info db)))
 
+(defn history [db]
+  (assoc (d/history db) ::attr->attr-info (find-attr->attr-info db)))
+
 (defn db [connection]
   (let [db (d/db connection)]
     (assoc db ::attr->attr-info (find-attr->attr-info db))))
@@ -112,7 +115,6 @@
               function
               gc-storage
               get-database-names
-              history
               ident
               index-range
               invoke

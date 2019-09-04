@@ -300,6 +300,21 @@
                      [:client/id {:client/users [:user/created-at]}]
                      (:db/id the-client))))))
 
+(deftest history
+  (let [conn (create-populated-conn)
+        db (d/db conn)
+        the-user (api/entity db [:user/email "foo@example.com"])
+        changed-db (:db-after @(api/transact conn [{:user/email "foo@example.com"
+                                                    :user/created-at #time/inst "2018-01-01T00:00:00Z"}]))]
+    (is (= 3
+           (count
+            (api/q '[:find ?created-at ?tx ?op
+                     :in $ ?user
+                     :where
+                     [?user :user/created-at ?created-at ?tx ?op]]
+                   (api/history changed-db)
+                   (:db/id the-user)))))))
+
 (deftest q
   (is (= #{[#time/inst "2017-01-01T00:00:00Z"]}
          (api/q
