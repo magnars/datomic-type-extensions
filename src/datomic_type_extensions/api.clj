@@ -115,6 +115,7 @@
               function
               gc-storage
               get-database-names
+              ;; history - implemented to make sure attr->attr-info is available
               ident
               index-range
               invoke

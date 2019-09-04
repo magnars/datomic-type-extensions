@@ -140,9 +140,14 @@ on the data migration.
 
 ## Install
 
-Add `[datomic-type-extensions "2019-05-10"]` to `:dependencies` in your `project.clj`.
+Add `[datomic-type-extensions "2019-09-04"]` to `:dependencies` in your `project.clj`.
 
 ## Changes
+
+#### From 2019-05-10 to 2019-09-04
+
+- We now wrap `datomic.api/history` to ensure we cache the type extended
+  attributes *before* the history db makes us unable to find them.
 
 #### From 2019-02-05 to 2019-05-10
 
