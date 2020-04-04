@@ -12,7 +12,7 @@
       false-or-truthy#
       (either ~@next))))
 
-(declare wrap)
+(declare wrap equiv-entity)
 
 (defn deserialize-attr [entity attr->attr-info attr]
   (when-let [val (attr entity)]
@@ -24,18 +24,18 @@
 (deftype TypeExtendedEntityMap [^EntityMap entity attr->attr-info touched?]
   Object
   (hashCode [_]           (hash [(.hashCode entity) attr->attr-info]))
-  (equals [_ o]           (and (instance? TypeExtendedEntityMap o)
-                               (.equiv entity (.entity o))))
+  (equals [this o]        (and (instance? TypeExtendedEntityMap o)
+                               (equiv-entity this o)))
 
   clojure.lang.Seqable
-  (seq [_]                 (map (fn [[k v]]
-                                  [k (either (deserialize-attr entity attr->attr-info k)
-                                             (wrap (.valAt entity k) attr->attr-info))])
-                                (.seq entity)))
+  (seq [_]                (map (fn [[k v]]
+                                 [k (either (deserialize-attr entity attr->attr-info k)
+                                            (wrap (.valAt entity k) attr->attr-info))])
+                               (.seq entity)))
 
   clojure.lang.Associative
-  (equiv [_ o]            (and (instance? TypeExtendedEntityMap o)
-                               (.equiv entity (.entity o))))
+  (equiv [this o]         (and (instance? TypeExtendedEntityMap o)
+                               (equiv-entity this o)))
   (containsKey [_ k]      (.containsKey entity k))
   (entryAt [_ k]          (let [v (either (deserialize-attr entity attr->attr-info k)
                                           (some-> entity (.entryAt k) .val (wrap attr->attr-info)))]
@@ -56,6 +56,10 @@
   (touch [this]           (do (.touch entity)
                               (reset! touched? true)
                               this)))
+
+(defn- equiv-entity [^TypeExtendedEntityMap e1 ^TypeExtendedEntityMap e2]
+  (.equiv (let [^EntityMap em (.entity e1)] em)
+          (let [^EntityMap em (.entity e2)] em)))
 
 (defmethod print-method TypeExtendedEntityMap [entity writer]
   (print-method (merge {:db/id (:db/id entity)}
