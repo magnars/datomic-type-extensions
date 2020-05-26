@@ -28,11 +28,14 @@
   (or (::attr->attr-info db)
       (query-attr->attr-info db)))
 
+(def init-txs
+  [{:db/ident :dte/valueType
+    :db/valueType :db.type/keyword
+    :db/cardinality :db.cardinality/one}])
+
 (defn init! [conn]
   (when-not (d/entity (d/db conn) :dte/valueType)
-    @(d/transact conn [{:db/ident :dte/valueType
-                        :db/valueType :db.type/keyword
-                        :db/cardinality :db.cardinality/one}])))
+    @(d/transact conn init-txs)))
 
 (defn prepare-tx-data [db tx-data]
   (->> tx-data
