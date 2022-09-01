@@ -1,5 +1,5 @@
 (ns datomic-type-extensions.core
-  (:require [clojure.walk :refer [postwalk]]
+  (:require [clojure.walk :refer [postwalk prewalk]]
             [datomic.api :as d]
             [datomic-type-extensions.types :as types]))
 
@@ -28,7 +28,7 @@
     form))
 
 (defn serialize-tx-data [attr->attr-info tx-data]
-  (postwalk
+  (prewalk
    (fn [form]
      (cond
        (map? form) (reduce #(update-attr types/serialize %1 %2) form attr->attr-info)
