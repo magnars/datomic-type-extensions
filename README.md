@@ -41,8 +41,7 @@ Oh yes. Let's look at some ways this abstraction leaks:
 - Datoms (as returned by `:tx-data`, indexes, and the log) are not
   deserialized.
 
-I bet there are more! This abstraction is leaky and under-tested. You probably
-do not want to use this library yet.
+There might be more, but during several years of production use, these are the ones we have encountered.
 
 ### Usage
 
