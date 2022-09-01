@@ -109,14 +109,10 @@ Then use the custom type:
   v) ;; this leaks: it returns a java.util.Date (the serialized backing type)
 ```
 
-### Why shouldn't I use this again?
+### So now what?
 
-- It is leaky.
-- It is under-tested.
-- It doesn't understand the full query syntax.
-
-Some of these I hope to correct. But most of all *I hope that this entire
-library will be made redundant by the Datomic team*.
+Feel free to use it. It's been used for years in several projects. Just be aware that it is leaky. For me, I hope that one day this entire
+library will be made redundant by the Datomic team.
 
 ### How can I use it with Conformity?
 
