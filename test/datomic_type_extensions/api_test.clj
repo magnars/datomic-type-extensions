@@ -23,7 +23,10 @@
 
 (defmethod types/get-backing-datomic-type :edn-backed-by-string [_] :db.type/string)
 (defmethod types/serialize :edn-backed-by-string [_ x] (pr-str x))
-(defmethod types/deserialize :edn-backed-by-string [_ x] (clojure.edn/read-string x))
+(defmethod types/deserialize :edn-backed-by-string [_ x]
+  (clojure.edn/read-string
+   {:readers {'time/inst java-time-literals.core/parse-instant}}
+   x))
 
 (defn attr-info [value-type & [cardinality]]
   {:dte/valueType value-type
@@ -69,6 +72,11 @@
            [:db/add 123 :user/name "no serialization needed"]
            [:db/add 123 :user/demands [:peace :love :happiness]]
            [:db/add 123 :user/edn [1 2 3]]])))
+
+  (testing "serialize and deserialize symmetry for nested dte-backed types"
+    (let [data {:user/edn {:user/created-at #time/inst "2017-01-01T00:00:00Z"}}]
+      (is (= (core/deserialize attr->attr-info (core/serialize-tx-data attr->attr-info data))
+             data))))
 
   (testing "nested maps"
     (is (= [{:client/users [{:user/created-at #inst "2017-01-01T00:00:00.000-00:00"}
