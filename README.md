@@ -48,20 +48,14 @@ There might be more, but during several years of production use, these are the o
 Define a custom type:
 
 ```clj
-
 (require '[datomic-type-extensions.types :as types])
 
-(defmethod types/get-backing-datomic-type
-  :java.time/instant [_]
-  :db.type/instant)
+(types/define-dte :java.time/instant :db.type/instant
+  [^java.time.Instant this]
+  (java.util.Date/from this)
 
-(defmethod types/serialize
-  :java.time/instant [_ ^Instant instant]
-  (java.util.Date/from instant))
-
-(defmethod types/deserialize
-  :java.time/instant [_ ^java.util.Date inst]
-  (Instant/ofEpochMilli (.getTime inst)))
+  [^java.util.Date inst]
+  (java.time.Instant/ofEpochMilli (.getTime inst)))
 ```
 
 If you're interested in storing [java.time](https://docs.oracle.com/javase/8/docs/api/java/time/package-summary.html)
