@@ -50,10 +50,16 @@ Define a custom type:
 ```clj
 (require '[datomic-type-extensions.types :as types])
 
-(types/define-dte :java.time/instant :db.type/instant
+(types/define-dte :java.time/instant
+
+  ;; native Datomic backing type
+  :db.type/instant
+
+  ;; serialize
   [^java.time.Instant this]
   (java.util.Date/from this)
 
+  ;; deserialize
   [^java.util.Date inst]
   (java.time.Instant/ofEpochMilli (.getTime inst)))
 ```
