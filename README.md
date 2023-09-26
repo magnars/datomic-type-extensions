@@ -105,8 +105,9 @@ Then use the custom type:
 
 ### So now what?
 
-Feel free to use it. It's been used for years in several projects. Just be aware that it is leaky. For me, I hope that one day this entire
-library will be made redundant by the Datomic team.
+Feel free to use it. It's been used for years in several projects. Just be aware
+that it is leaky. For me, I hope that one day this entire library will be made
+redundant by the Datomic team.
 
 ### How can I use it with Conformity?
 
@@ -119,7 +120,8 @@ Datomic API, you can add the backing types like so:
 
 before sending the migrations to Conformity.
 
-If you are also migrating in data that needs to be serialized, you might have to do the attribute migrations first, and then do:
+If you are also migrating in data that needs to be serialized, you might have to
+do the attribute migrations first, and then do:
 
 ```clj
 (d/prepare-tx-data db tx-data)
@@ -129,9 +131,24 @@ on the data migration.
 
 ## Install
 
-Add `[datomic-type-extensions "2020-05-26"]` to `:dependencies` in your `project.clj`.
+With tools.deps:
+
+```clj
+datomic-type-extensions/datomic-type-extensions {:mvn/version "2023.09.26"}
+```
+
+With Leiningen:
+
+```clj
+[datomic-type-extensions "2023.09.26"]
+```
 
 ## Changes
+
+#### From 2020-05-26 to 2023.09.26
+
+- Add `datomic-type-extensions.types/define-dte` macro for even more
+  convenience.
 
 #### From 2019-09-04 to 2020-05-26
 
