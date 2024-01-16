@@ -1,0 +1,3 @@
+{:hooks
+ {:analyze-call
+  {datomic-type-extensions.types/define-dte hooks.datomic-type-extensions/define-dte}}}

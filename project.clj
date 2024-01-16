@@ -4,6 +4,7 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[potemkin "0.4.5"]]
+  :resource-paths ["resources"]
   :profiles {:dev {:dependencies [[org.clojure/clojure "1.10.0"]
                                   [com.datomic/datomic-free "0.9.5697"]
                                   [java-time-literals "2018-04-06"]
