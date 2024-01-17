@@ -140,7 +140,7 @@ on the data migration.
 With tools.deps:
 
 ```clj
-datomic-type-extensions/datomic-type-extensions {:mvn/version "2023.09.26"}
+datomic-type-extensions/datomic-type-extensions {:mvn/version "2024.01.17"}
 ```
 
 With Leiningen:
@@ -151,10 +151,11 @@ With Leiningen:
 
 ## Changes
 
-#### From 2020-05-26 to 2023.09.26
+#### From 2020-05-26 to 2024.01.17
 
 - Add `datomic-type-extensions.types/define-dte` macro for even more
   convenience.
+- Support for linting `define-dte` with clj-kondo.
 
 #### From 2019-09-04 to 2020-05-26
 
