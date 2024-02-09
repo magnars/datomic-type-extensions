@@ -140,16 +140,26 @@ on the data migration.
 With tools.deps:
 
 ```clj
-datomic-type-extensions/datomic-type-extensions {:mvn/version "2024.01.17"}
+datomic-type-extensions/datomic-type-extensions {:mvn/version "2024.02.09"}
 ```
 
 With Leiningen:
 
 ```clj
-[datomic-type-extensions "2023.09.26"]
+[datomic-type-extensions "2024.02.09"]
 ```
 
 ## Changes
+
+#### From 2024.01.17 to 2024.02.09
+
+- **BREAKING BUGFIX**
+
+    Data with nested dte-backed attributes was not properly deserialized. This
+    bug has now been fixed, with potential breakage if your code relied on this
+    asymmetry.
+
+    More information in the PR: https://github.com/magnars/datomic-type-extensions/pull/9
 
 #### From 2020-05-26 to 2024.01.17
 
