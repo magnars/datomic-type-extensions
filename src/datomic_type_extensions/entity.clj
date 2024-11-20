@@ -29,8 +29,10 @@
 
   clojure.lang.Seqable
   (seq [_]                (map (fn [[k v]]
-                                 [k (either (deserialize-attr entity attr->attr-info k)
-                                            (wrap (.valAt entity k) attr->attr-info))])
+                                 (clojure.lang.MapEntry.
+                                  k
+                                  (either (deserialize-attr entity attr->attr-info k)
+                                          (wrap (.valAt entity k) attr->attr-info))))
                                (.seq entity)))
 
   clojure.lang.Associative

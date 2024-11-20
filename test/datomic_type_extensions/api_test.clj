@@ -1,10 +1,10 @@
 (ns datomic-type-extensions.api-test
   (:require [clojure.edn :as edn]
-            [clojure.test :refer [deftest testing is are]]
-            [datomic.api :as d]
+            [clojure.test :refer [are deftest is testing]]
             [datomic-type-extensions.api :as api]
             [datomic-type-extensions.core :as core]
-            [datomic-type-extensions.types :as types])
+            [datomic-type-extensions.types :as types]
+            [datomic.api :as d])
   (:import java.time.Instant))
 
 ;; :java.time/instant
@@ -216,6 +216,10 @@
       (is (nil? (.valAt wrapped-entity :user/missing-attr)))
       (is (= (.valAt wrapped-entity :user/missing-attr :not-found) :not-found))
       (is (nil? (.valAt wrapped-entity :user/leaves-empty))))
+
+    (testing "works with (keys ,,,)"
+      (is (= (set (keys wrapped-entity))
+             #{:user/email :user/demands :user/created-at})))
 
     (testing "keeps type when emptied"
       (is (= wrapped-entity (empty wrapped-entity)))))
