@@ -140,16 +140,22 @@ on the data migration.
 With tools.deps:
 
 ```clj
-datomic-type-extensions/datomic-type-extensions {:mvn/version "2024.02.09"}
+datomic-type-extensions/datomic-type-extensions {:mvn/version "2024.11.20"}
 ```
 
 With Leiningen:
 
 ```clj
-[datomic-type-extensions "2024.02.09"]
+[datomic-type-extensions "2024.11.20"]
 ```
 
 ## Changes
+
+#### From 2024.02.09 to 2024.11.20
+
+- Bugfix: Calling `seq` on an entity now returns a list of `MapEntry`
+
+    This is the expected behavior of datomic entities, and makes it work with `keys`.
 
 #### From 2024.01.17 to 2024.02.09
 
