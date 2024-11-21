@@ -10,14 +10,18 @@
     [a (nth e 3)]))
 
 (defn find-var->type-mapping [query attr->attr-info]
-  (let [where-clauses (next (drop-while #(not= :where %) query))]
+  (let [where-clauses (if (map? query)
+                        (:where query)
+                        (next (drop-while #(not= :where %) query)))]
     (->> (keep find-binding where-clauses)
          (keep (fn [[v a]] (when-let [attr-info (attr->attr-info a)]
                              [v (:dte/valueType attr-info)])))
          (into {}))))
 
 (defn deserialization-pattern [query attr->attr-info]
-  (let [find-clauses (next (take-while #(not (#{:in :where} %)) query))
+  (let [find-clauses (if (map? query)
+                       (:find query)
+                       (next (take-while #(not (#{:in :where} %)) query)))
         var->type (find-var->type-mapping query attr->attr-info)
         find-pattern #(if (and (seq? %) (= 'pull (first %)))
                         {:type :deserializable-form}

@@ -65,6 +65,61 @@
             '[:find ?e (pull ?e [:user/email]) :where [?e :user/created-at ?v]]
             attr->attr-info)))))
 
+(deftest deserialization-pattern-with-map-query
+  (testing "a single value"
+    (testing "- serialized"
+      (is (= :java.time/instant
+             (sut/deserialization-pattern
+              '{:find [?v .] :where [[?e :user/created-at ?v]]}
+              attr->attr-info))))
+
+    (testing "- not serialized"
+      (is (nil? (sut/deserialization-pattern
+                 '{:find [?v .] :where [[?e :user/name ?v]]}
+                 attr->attr-info))))
+
+    (testing "- entity id"
+      (is (nil? (sut/deserialization-pattern
+                 '{:find [?e .] :where [[?e :user/created-at ?v]]}
+                 attr->attr-info)))))
+
+  (testing "vector"
+    (is (= {:type :vector
+            :pattern :java.time/instant}
+           (sut/deserialization-pattern
+            '{:find [[?v ...]] :where [[?e :user/created-at ?v]]}
+            attr->attr-info))))
+
+  (testing "sets of tuples"
+    (is (= {:type :set
+            :pattern {:type :tuple
+                      :entries [nil :java.time/instant]}}
+           (sut/deserialization-pattern
+            '{:find [?e ?v] :where [[?e :user/created-at ?v]]}
+            attr->attr-info))))
+
+  (testing "pull syntax"
+    (is (= {:type :vector
+            :pattern {:type :deserializable-form}}
+           (sut/deserialization-pattern
+            '{:find [[(pull ?e [:user/email :user/created-at]) ...]]
+              :where [[?e :user/created-at ?v]]}
+            attr->attr-info)))
+
+    (is (= {:type :deserializable-form}
+           (sut/deserialization-pattern
+            '{:find [(pull ?e [:user/email :user/created-at]) .]
+              :where [[?e :user/created-at ?v]]}
+            attr->attr-info)))
+
+    (is (= {:type :set
+            :pattern {:type :tuple
+                      :entries [nil {:type :deserializable-form}]}}
+           (sut/deserialization-pattern
+            '{:find [?e (pull ?e [:user/email])]
+              :where [[?e :user/created-at ?v]]}
+            attr->attr-info)))))
+
 (deftest deserialize-by-pattern
   (is (= :client-id
          (sut/deserialize-by-pattern "client-id" :keyword-backed-by-string {})))
