@@ -6,7 +6,7 @@
   :dependencies [[potemkin "0.4.5"]]
   :resource-paths ["resources"]
   :profiles {:dev {:dependencies [[org.clojure/clojure "1.10.0"]
-                                  [com.datomic/datomic-free "0.9.5697"]
+                                  [com.datomic/peer "1.0.6726"]
                                   [java-time-literals "2018-04-06"]
                                   [org.clojure/tools.cli "0.4.1"] ;; for kaocha to recognize command line options
                                   [lambdaisland/kaocha "0.0-389"]
