@@ -347,9 +347,24 @@
 
   (is (thrown-with-msg? Exception #"The first input must be a datomic DB so that datomic-type-extensions can deserialize."
                         (api/q '[:find ?inst :in ?e $ :where [?e :user/created-at ?inst]]
-                               [:user/email "foo@example.com"] (d/db (create-populated-conn))))))
+                               [:user/email "foo@example.com"] (d/db (create-populated-conn)))))
+
+  (testing "Return Maps"
+    ;; Return maps is a datomic feature that allows a query to return a sequence of maps.
+    ;;
+    ;; Datomic docs for return maps: https://docs.datomic.com/query/query-data-reference.html#return-maps
+    (is (= '({:created-at #time/inst "2017-01-01T00:00:00.000-00:00"
+              :email "foo@example.com"})
+           (api/q '[:find ?created-at ?email
+                    :keys created-at email
+                    :where
+                    [?e :user/email ?email]
+                    [?e :user/created-at ?created-at]]
+                  (d/db (create-populated-conn)))))))
 
 (comment
+  (set! *print-namespace-maps* false)
+
   (def conn (create-populated-conn))
   (def db (d/db conn))
 
@@ -377,5 +392,29 @@
   (let [[[e a v]]
         (seq (d/datoms (d/db conn) :eavt [:user/email "foo@example.com"] :user/created-at))]
     v)
+
+  ;; Return maps behavior in Datomic and datomic-type-extensions
+  (api/q '[:find ?email ?created-at
+           :where
+           [?e :user/email ?email]
+           [?e :user/created-at ?created-at]]
+         db)
+  ;; => #{["foo@example.com" #time/inst "2017-01-01T00:00:00Z"]}
+
+  (api/q '{:find [?email ?created-at]
+           :keys [email created-at]
+           :where
+           [[?e :user/email ?email]
+            [?e :user/created-at ?created-at]]}
+         db)
+  ;; => [{:email "foo@example.com", :created-at #time/inst "2017-01-01T00:00:00Z"}]
+
+  (d/q '{:find [?email ?created-at]
+         :keys [email created-at]
+         :where
+         [[?e :user/email ?email]
+          [?e :user/created-at ?created-at]]}
+       db)
+  ;; => [{:email "foo@example.com", :created-at #inst "2017-01-01T00:00:00.000-00:00"}]
 
   )
