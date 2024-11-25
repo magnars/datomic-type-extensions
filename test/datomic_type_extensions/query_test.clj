@@ -154,3 +154,90 @@
                                        :where [?e :user/email ?email]
                                        [(get-else $ ?e :user/updated-at nil) ?updated]]
                                      attr->attr-info))))
+
+(deftest vector-style-query->map-style-query
+  (is
+   (= '{:find [?name]
+        :where [[_ :person/name ?name]]}
+      (sut/vector-style-query->map-style-query
+       '[:find ?name
+         :where [_ :person/name ?name]]))))
+
+(deftest canonicalized-query->return-map-keys
+  (is (= [:name :age]
+         (sut/canonicalized-query->return-map-keys
+          '{:find [?e]
+            :keys [name age]
+            :where [[?e :person/name]]})))
+  (is (= [:person/name :person/age]
+         (sut/canonicalized-query->return-map-keys
+          '{:find [?e]
+            :keys [person/name person/age]
+            :where [[?e :person/name]]})))
+  (is (= '[name age]
+         (sut/canonicalized-query->return-map-keys
+          '{:find [?e]
+            :syms [name age]
+            :where [[?e :person/name]]})))
+  (is (= ["name" "age"]
+         (sut/canonicalized-query->return-map-keys
+          '{:find [?e]
+            :strs [name age]
+            :where [[?e :person/name]]})))
+  (testing "throws when two key types are supplied"
+    (is
+     (thrown? clojure.lang.ExceptionInfo
+              (sut/canonicalized-query->return-map-keys
+               '{:find [?e]
+                 :keys [name]
+                 :syms [age]
+                 :where [[?e :person/name]]})))))
+
+(deftest query->stripped-query+return-map-keys
+  (testing "query without return map keys"
+    (testing "vector form"
+      (is (= ['{:find [?e] :where [[?e :person/name]]} nil]
+             (sut/query->stripped-canonicalized-query+return-map-keys
+              '[:find ?e
+                :where [?e :person/name]]))))
+    (testing "map form"
+      (is (= ['{:find [?e] :where [[?e :person/name]]} nil]
+             (sut/query->stripped-canonicalized-query+return-map-keys
+              '{:find [?e]
+                :where [[?e :person/name]]})))))
+  (testing "query with return map keys"
+    (testing "vector form"
+      (is (= ['{:find [?e]
+                :where [[?e :person/name]]}
+              '(:name)]
+             (sut/query->stripped-canonicalized-query+return-map-keys
+              '[:find ?e
+                :keys name
+                :where [?e :person/name]])))
+      (is (= ['{:find [?e]
+                :where [[?e :person/name]]}
+              '("name")]
+             (sut/query->stripped-canonicalized-query+return-map-keys
+              '[:find ?e
+                :strs name
+                :where [?e :person/name]]))))
+    (testing "map form"
+      (is (= ['{:find [?e]
+                :where [[?e :person/name]]}
+              '(name)]
+             (sut/query->stripped-canonicalized-query+return-map-keys
+              '{:find [?e]
+                :syms [name]
+                :where [[?e :person/name]]}))))))
+
+(deftest return-maps-request
+  (is (= #{{:name "Teodor"} {:name "Magnar"}}
+         (set
+          (sut/return-maps #{["Teodor"]
+                             ["Magnar"]}
+                           '[:name])))))
+
+(comment
+  (remove-ns (symbol (str *ns*)))
+  (set! *print-namespace-maps* false)
+  )

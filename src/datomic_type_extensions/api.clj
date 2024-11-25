@@ -1,11 +1,11 @@
 (ns datomic-type-extensions.api
   (:refer-clojure :exclude [filter sync])
   (:require [clojure.walk :refer [postwalk]]
-            [datomic.api :as d]
             [datomic-type-extensions.core :as core]
             [datomic-type-extensions.entity :as entity]
             [datomic-type-extensions.query :as query]
             [datomic-type-extensions.types :as types]
+            [datomic.api :as d]
             [potemkin :refer [import-vars]]))
 
 ;; store attr->attr-info in db
@@ -87,14 +87,17 @@
     conn))
 
 (defn query [query-map]
-  (let [db (first (:args query-map))
+  (let [{:keys [query args]} query-map
+        db (first args)
         _ (when-not (instance? datomic.db.Db db)
             (throw (Exception. "The first input must be a datomic DB so that datomic-type-extensions can deserialize.")))
-        attr->attr-info (find-attr->attr-info db)]
-    (query/deserialize-by-pattern
-     (d/query query-map)
-     (query/deserialization-pattern (:query query-map) attr->attr-info)
-     attr->attr-info)))
+        attr->attr-info (find-attr->attr-info db)
+        [query-without-return-maps return-map-keys] (query/query->stripped-canonicalized-query+return-map-keys query)]
+    (-> (d/query {:query query-without-return-maps :args args})
+        (query/deserialize-by-pattern
+         (query/deserialization-pattern (:query query-map) attr->attr-info)
+         attr->attr-info)
+        (query/return-maps return-map-keys))))
 
 (defn q [q & inputs]
   (query {:query q :args inputs}))
