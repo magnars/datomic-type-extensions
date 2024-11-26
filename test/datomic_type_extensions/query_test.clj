@@ -209,14 +209,14 @@
     (testing "vector form"
       (is (= ['{:find [?e]
                 :where [[?e :person/name]]}
-              '(:name)]
+              '[:name]]
              (sut/query->stripped-canonicalized-query+return-map-keys
               '[:find ?e
                 :keys name
                 :where [?e :person/name]])))
       (is (= ['{:find [?e]
                 :where [[?e :person/name]]}
-              '("name")]
+              '["name"]]
              (sut/query->stripped-canonicalized-query+return-map-keys
               '[:find ?e
                 :strs name
@@ -224,7 +224,7 @@
     (testing "map form"
       (is (= ['{:find [?e]
                 :where [[?e :person/name]]}
-              '(name)]
+              '[name]]
              (sut/query->stripped-canonicalized-query+return-map-keys
               '{:find [?e]
                 :syms [name]

@@ -110,7 +110,7 @@ Source: https://docs.datomic.com/query/query-data-reference.html"}
        (partition-by datomic-query-clause-keywords)
        (partition 2)
        (map (fn [[[k] clauses]]
-              [k clauses]))
+              [k (vec clauses)]))
        (into {})))
 
 (defn canonicalize-query
