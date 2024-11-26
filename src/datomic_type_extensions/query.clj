@@ -1,6 +1,5 @@
 (ns datomic-type-extensions.query
-  (:require [clojure.set :as set]
-            [datomic-type-extensions.core :as core]
+  (:require [datomic-type-extensions.core :as core]
             [datomic-type-extensions.types :as types]))
 
 (defn find-binding [[e a v]]
