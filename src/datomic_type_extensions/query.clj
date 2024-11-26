@@ -59,42 +59,6 @@
 
     :else form))
 
-;; Design notes for implementation of datomic query return maps
-;; ============================================================
-;;
-;; Terminology:
-;;
-;; - query              - [:find ?e :where ?e :person/name] - a map-form or vector-form Datomic query
-;; - query-map          - {:query query :args args}         - query with args, including db
-;; - return-map-request - {:keys ['name 'age]}              - query part that requests maps to be returned
-;;
-;; Known limitations:
-;;
-;; - A datomic-type-extensions user that has written an illegal query combining
-;;   return maps with a :find clause that does not return a set of tuples will
-;;   get poor error messages.
-;;
-;;   Examples:
-;;
-;;     [:find [?name ...] :keys name :where [_ :person/name ?name]]
-;;     [:find ?name . :keys name :where [_ :person/name ?name]]
-;;
-;;   In these cases, Datomic will return something that doesn't make sense to
-;;   use with query return maps - as the user already has requested a different
-;;   type of output than sequence of maps.
-;;
-;; - Worse error messages than datomic if the user requests return maps that
-;;   contain an illegal number of keys
-;;
-;;   Example:
-;;
-;;     [:find ?name ?age :keys name :where [_ :person/name ?name]]
-;;
-;;   In this case, the find clause picks out
-;;
-;; In other words, the implementation of datomic query return maps in
-;; datomic-type-extensions is, unfortunately, leaky.
-
 (def ^{:doc "Keywords that signify that a new query clause is starting.
 
 Source: https://docs.datomic.com/query/query-data-reference.html"}
