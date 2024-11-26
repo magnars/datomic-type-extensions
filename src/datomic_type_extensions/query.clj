@@ -113,14 +113,11 @@ Source: https://docs.datomic.com/query/query-data-reference.html"}
               [k clauses]))
        (into {})))
 
-(defn ex-string-style-queries-not-supported []
-  (ex-info "String-style Datomic queries are not supported by datomic-type-extensions" {}))
-
 (defn canonicalize-query
   [query]
   (cond
     (map? query) query
-    (string? query) (ex-string-style-queries-not-supported)
+    (string? query) (throw (ex-info "String-style Datomic queries are not supported by datomic-type-extensions" {}))
     (vector? query) (vector-style-query->map-style-query query)))
 
 (defn canonicalized-query->return-map-keys [canonicalized-query]
