@@ -87,17 +87,17 @@
     conn))
 
 (defn query [query-map]
-  (let [{:keys [query args]} query-map
+  (let [args (:args query-map)
+        query (query/->map-form (:query query-map))
         db (first args)
         _ (when-not (instance? datomic.db.Db db)
             (throw (Exception. "The first input must be a datomic DB so that datomic-type-extensions can deserialize.")))
-        attr->attr-info (find-attr->attr-info db)
-        [query-without-return-maps return-map-keys] (query/query->stripped-canonicalized-query+return-map-keys query)]
-    (-> (d/query {:query query-without-return-maps :args args})
+        attr->attr-info (find-attr->attr-info db)]
+    (-> (d/query {:query (query/strip-return-maps query) :args args})
         (query/deserialize-by-pattern
-         (query/deserialization-pattern (:query query-map) attr->attr-info)
+         (query/deserialization-pattern query attr->attr-info)
          attr->attr-info)
-        (query/return-maps return-map-keys))))
+        (query/return-maps (query/return-map-keys query)))))
 
 (defn q [q & inputs]
   (query {:query q :args inputs}))

@@ -10,18 +10,14 @@
     [a (nth e 3)]))
 
 (defn find-var->type-mapping [query attr->attr-info]
-  (let [where-clauses (if (map? query)
-                        (:where query)
-                        (next (drop-while #(not= :where %) query)))]
+  (let [where-clauses (:where query)]
     (->> (keep find-binding where-clauses)
          (keep (fn [[v a]] (when-let [attr-info (attr->attr-info a)]
                              [v (:dte/valueType attr-info)])))
          (into {}))))
 
 (defn deserialization-pattern [query attr->attr-info]
-  (let [find-clauses (if (map? query)
-                       (:find query)
-                       (next (take-while #(not (#{:in :where} %)) query)))
+  (let [find-clauses (:find query)
         var->type (find-var->type-mapping query attr->attr-info)
         find-pattern #(if (and (seq? %) (= 'pull (first %)))
                         {:type :deserializable-form}
@@ -68,40 +64,38 @@ Source: https://docs.datomic.com/query/query-data-reference.html"}
     :in
     :where})
 
-(defn vector-style-query->map-style-query [vector-style-query]
-  (->> vector-style-query
+(defn list-form->map-form [list-form-query]
+  (->> list-form-query
        (partition-by datomic-query-clause-keywords)
        (partition 2)
        (map (fn [[[k] clauses]]
               [k (vec clauses)]))
        (into {})))
 
-(defn canonicalize-query
+(defn ->map-form
   [query]
   (cond
     (map? query) query
-    (string? query) (throw (ex-info "String-style Datomic queries are not supported by datomic-type-extensions" {}))
-    (vector? query) (vector-style-query->map-style-query query)))
+    (string? query) (throw (ex-info "String-form Datomic queries are not supported by datomic-type-extensions" {}))
+    (vector? query) (list-form->map-form query)))
 
-(defn canonicalized-query->return-map-keys [canonicalized-query]
-  (let [return-map-part (select-keys canonicalized-query [:strs :keys :syms])]
+(defn return-map-keys [query]
+  (let [return-map-part (select-keys query [:strs :keys :syms])]
     (when (seq return-map-part)
       (when-not (= 1 (count return-map-part))
-        (throw (ex-info "invalid return map request"
-                        {:canonicalized-query canonicalized-query
+        (throw (ex-info "Invalid return map request"
+                        {:map-form-query query
                          :error ::more-than-one-return-map-clause})))
       (when-not (seq (val (first return-map-part)))
-        (throw (ex-info "invalid return map request"
-                        {:canonicalized-query canonicalized-query
+        (throw (ex-info "Invalid return map request"
+                        {:map-form-query query
                          :error ::return-map-keys-not-seqence})))
       (let [[key-type the-keys] (first return-map-part)
             coerce-key (get {:strs str :keys keyword :syms symbol} key-type)]
         (mapv coerce-key the-keys)))))
 
-(defn query->stripped-canonicalized-query+return-map-keys [query]
-  (let [canonicalized (canonicalize-query query)]
-    [(dissoc canonicalized :strs :keys :syms)
-     (canonicalized-query->return-map-keys canonicalized)]))
+(defn strip-return-maps [query]
+  (dissoc query :strs :keys :syms))
 
 (defn return-maps [raw-query-results return-map-keys]
   (if (seq return-map-keys)
@@ -121,6 +115,6 @@ Source: https://docs.datomic.com/query/query-data-reference.html"}
 
   (def query '{:find [?name]
                :where [[_ :person/name ?name]]})
-  (= query (canonicalize-query query))
+  (= query (->map-form query))
 
   )
