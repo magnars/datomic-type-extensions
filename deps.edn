@@ -1,0 +1,3 @@
+;; project.clj is the source of truth for this library
+;; `deps.edn` is added only to enable use of this branch as a Git dependency
+{:deps {potemkin/potemkin {:mvn/version "0.4.5"}}}
