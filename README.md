@@ -140,16 +140,22 @@ on the data migration.
 With tools.deps:
 
 ```clj
-datomic-type-extensions/datomic-type-extensions {:mvn/version "2024.11.20"}
+datomic-type-extensions/datomic-type-extensions {:mvn/version "2025.01.15"}
 ```
 
 With Leiningen:
 
 ```clj
-[datomic-type-extensions "2024.11.20"]
+[datomic-type-extensions "2025.01.15"]
 ```
 
 ## Changes
+
+#### From 2024.11.20 to 2025.01.15
+
+- Add support for query-stats and io-stats.
+- Add support for return maps in queries.
+- Add support for queries as maps.
 
 #### From 2024.02.09 to 2024.11.20
 
