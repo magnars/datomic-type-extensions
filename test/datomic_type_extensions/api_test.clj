@@ -362,6 +362,24 @@
                     [?e :user/created-at ?created-at]]
                   (d/db (create-populated-conn)))))))
 
+(deftest stats
+  (testing "Query stats returns map with result set in :ret"
+    (let [result (api/query
+                  {:query '[:find ?inst :where [_ :user/created-at ?inst]]
+                   :args [(d/db (create-populated-conn))]
+                   :query-stats true})]
+      (is (= #{[#time/inst "2017-01-01T00:00:00Z"]}
+             (:ret result)))
+      (is (some? (:query-stats result)))))
+  (testing "IO stats returns map with result set in :ret"
+    (let [result (api/query
+                  {:query '[:find ?inst :where [_ :user/created-at ?inst]]
+                   :args [(d/db (create-populated-conn))]
+                   :io-context :user/created-at})]
+      (is (= #{[#time/inst "2017-01-01T00:00:00Z"]}
+             (:ret result)))
+      (is (some? (:io-stats result))))))
+
 (comment
   (set! *print-namespace-maps* false)
 
