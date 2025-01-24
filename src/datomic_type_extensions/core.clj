@@ -17,7 +17,8 @@
   (if-let [[op e a v] (and (vector? form) form)]
     (let [attr-info (get attr->attr-info a)]
       (if (and (#{:db/add :db/retract} op)
-               (:dte/valueType attr-info))
+               (:dte/valueType attr-info)
+               (some? v))
         (update form 3 #(apply-to-value (partial types/serialize (:dte/valueType attr-info)) attr-info %))
         form))
     form))

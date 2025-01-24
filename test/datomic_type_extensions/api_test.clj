@@ -60,6 +60,7 @@
 (deftest serialize-tx-data
   (is (= [{:db/id 123 :user/created-at #inst "2017-01-01T00:00:00"}
           [:db/retract 123 :user/updated-at #inst "2017-02-02T00:00:00"]
+          [:db/retract 123 :user/updated-at]
           [:db/add 456 :client/id "the-client"]
           [:db/add 123 :user/name "no serialization needed"]
           [:db/add 123 :user/demands ["peace" "love" "happiness"]]
@@ -68,6 +69,7 @@
           attr->attr-info
           [{:db/id 123 :user/created-at #time/inst "2017-01-01T00:00:00Z"}
            [:db/retract 123 :user/updated-at #time/inst "2017-02-02T00:00:00Z"]
+           [:db/retract 123 :user/updated-at]
            [:db/add 456 :client/id :the-client]
            [:db/add 123 :user/name "no serialization needed"]
            [:db/add 123 :user/demands [:peace :love :happiness]]
