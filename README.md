@@ -153,7 +153,7 @@ With Leiningen:
 
 #### From 2024.11.20 to 2025.01.24
 
-- Support retractions without a value. ([Tormod Mathiesen](/2food))
+- Support retractions without a value. ([Tormod Mathiesen](https://github.com/2food))
 - Add support for query-stats and io-stats.
 - Add support for return maps in queries.
 - Add support for queries as maps.
