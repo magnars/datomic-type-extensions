@@ -140,19 +140,20 @@ on the data migration.
 With tools.deps:
 
 ```clj
-datomic-type-extensions/datomic-type-extensions {:mvn/version "2025.01.15"}
+datomic-type-extensions/datomic-type-extensions {:mvn/version "2025.01.24"}
 ```
 
 With Leiningen:
 
 ```clj
-[datomic-type-extensions "2025.01.15"]
+[datomic-type-extensions "2025.01.24"]
 ```
 
 ## Changes
 
-#### From 2024.11.20 to 2025.01.15
+#### From 2024.11.20 to 2025.01.24
 
+- Support retractions without a value. ([Tormod Mathiesen](/2food))
 - Add support for query-stats and io-stats.
 - Add support for return maps in queries.
 - Add support for queries as maps.
