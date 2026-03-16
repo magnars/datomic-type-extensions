@@ -144,6 +144,11 @@
          (set
           (sut/return-maps #{["Teodor"]
                              ["Magnar"]}
+                           '[:name]))))
+
+  (is (= #{}
+         (set
+          (sut/return-maps #{}
                            '[:name])))))
 
 (comment
