@@ -4,11 +4,11 @@ Design notes for implementation of datomic query return maps
 Terminology
 -----------
 
-| term            | example                             | definition                              |
-|-----------------|-------------------------------------|-----------------------------------------|
-| query           | `[:find ?e :where ?e :person/name]` | a map-form or vector-form Datomic query |
-| query-map       | `{:query query :args args}`         | query with args, including db           |
-| return-map-keys | `[:name :age]`                      | keys present in returned maps           |
+| term            | example                               | definition                              |
+|-----------------|---------------------------------------|-----------------------------------------|
+| query           | `[:find ?e :where [?e :person/name]]` | a map-form or vector-form Datomic query |
+| query-map       | `{:query query :args args}`           | query with args, including db           |
+| return-map-keys | `[:name :age]`                        | keys present in returned maps           |
 
 Error messages in Datomic and datomic-type-extensions
 -----------------------------------------------------
