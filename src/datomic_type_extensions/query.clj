@@ -97,19 +97,20 @@ Source: https://docs.datomic.com/query/query-data-reference.html"}
 (defn strip-return-maps [query]
   (dissoc query :strs :keys :syms))
 
+(def ^:dynamic *return-maps-checks* true)
+
 (defn return-maps [raw-query-results return-map-keys]
   (if (seq return-map-keys)
     (do
-      (when (not (or (empty? raw-query-results)
-                     (and (seq raw-query-results)
-                          (seq (first raw-query-results)))))
-        (throw (ex-info "Return map keys are provided, and query results have illegal data format"
-                        {:raw-query-results raw-query-results :return-map-keys return-map-keys})))
-      (when (not (or (empty? raw-query-results)
-                     (= (count return-map-keys)
-                        (count (first raw-query-results)))))
-        (throw (ex-info "Return map key count does not match row size"
-                        {:raw-query-results raw-query-results :return-map-keys return-map-keys})))
+      (when *return-maps-checks*
+        (when (not (and (seq raw-query-results)
+                        (seq (first raw-query-results))))
+          (throw (ex-info "Return map keys are provided, and query results have illegal data format"
+                          {:raw-query-results raw-query-results :return-map-keys return-map-keys})))
+        (when (not (= (count return-map-keys)
+                      (count (first raw-query-results))))
+          (throw (ex-info "Return map key count does not match row size"
+                          {:raw-query-results raw-query-results :return-map-keys return-map-keys}))))
       (mapv (partial zipmap return-map-keys) raw-query-results))
     raw-query-results))
 
