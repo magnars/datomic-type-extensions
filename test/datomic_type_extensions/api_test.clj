@@ -218,8 +218,10 @@
         :person/friends [{:person/id "sibling1"}]}])
     conn))
 
+(def populated-db (d/db (create-populated-conn)))
+
 (deftest entity
-  (let [wrapped-entity (api/entity (d/db (create-populated-conn))
+  (let [wrapped-entity (api/entity populated-db
                                    [:user/email "foo@example.com"])]
     (testing "deserializes registered attributes"
       (is (= #time/inst "2017-01-01T00:00:00Z" (:user/created-at wrapped-entity) (.get wrapped-entity :user/created-at)))
@@ -254,17 +256,16 @@
         (is (vector? (:user/favorite-foods wrapped-entity))))))
 
   (testing "can use entity lookup ref"
-    (is (not (nil? (api/entity (d/db (create-populated-conn))
+    (is (not (nil? (api/entity populated-db
                                [:client/id :the-client])))))
 
-  (let [db (d/db (create-populated-conn))
-        datomic-entity (d/entity db [:client/id "the-client"])
-        wrapped-entity (api/entity db [:client/id :the-client])]
+  (let [datomic-entity (d/entity populated-db [:client/id "the-client"])
+        wrapped-entity (api/entity populated-db [:client/id :the-client])]
 
     (testing "equality semantics"
       (is (not= datomic-entity wrapped-entity))
       (is (not= wrapped-entity datomic-entity))
-      (is (= wrapped-entity (api/entity db [:client/id :the-client]))))
+      (is (= wrapped-entity (api/entity populated-db [:client/id :the-client]))))
 
     (testing "deserializes nested entity attributes"
       (is (= #time/inst "2017-01-01T00:00:00Z"
@@ -303,13 +304,13 @@
 
 (deftest pull
   (is (= {:client/users [{:user/created-at #time/inst "2017-01-01T00:00:00Z"}]}
-         (api/pull (d/db (create-populated-conn))
+         (api/pull populated-db
                    [{:client/users [:user/created-at]}]
                    [:client/id :the-client])))
 
   (is (= [{:client/id :the-client
            :client/users [{:user/created-at #time/inst "2017-01-01T00:00:00Z"}]}]
-         (api/pull-many (d/db (create-populated-conn))
+         (api/pull-many populated-db
                         [:client/id {:client/users [:user/created-at]}]
                         [[:client/id :the-client]]))))
 
@@ -327,7 +328,7 @@
 (deftest with
   (is (= {:client/users [{:user/created-at #time/inst "2017-01-01T00:00:00Z"}
                          {:user/created-at #time/inst "2017-02-01T00:00:00Z"}]}
-         (api/pull (:db-after (api/with (d/db (create-populated-conn))
+         (api/pull (:db-after (api/with populated-db
                                         [{:client/id :the-client
                                           :client/users [{:user/email "bar@example.com"
                                                           :user/created-at #time/inst "2017-02-01T00:00:00Z"}]}]))
@@ -337,11 +338,10 @@
 (deftest filter
   (is (= {:client/id :the-client
           :client/users [{:user/created-at #time/inst "2017-01-01T00:00:00Z"}]}
-         (let [db (d/db (create-populated-conn))
-               the-client (api/entity db [:client/id :the-client])
+         (let [the-client (api/entity populated-db [:client/id :the-client])
                keep-eids (into #{(:db/id the-client)}
                                (map :db/id (:client/users the-client)))]
-           (api/pull (api/filter db (fn [_ datom] (some #{(:e datom)} keep-eids)))
+           (api/pull (api/filter populated-db (fn [_ datom] (some #{(:e datom)} keep-eids)))
                      [:client/id {:client/users [:user/created-at]}]
                      (:db/id the-client))))))
 
@@ -364,27 +364,25 @@
   (is (= #{[#time/inst "2017-01-01T00:00:00Z"]}
          (api/q
           '[:find ?inst :where [_ :user/created-at ?inst]]
-          (d/db (create-populated-conn)))))
+          populated-db)))
 
   (is (= #{[:the-client {:user/created-at #time/inst "2017-01-01T00:00:00.000Z"}]}
          (api/q '[:find ?c-id (pull ?e [:user/created-at])
                   :where
                   [?c :client/id ?c-id]
                   [?c :client/users ?e]]
-                (d/db (create-populated-conn)))))
+                populated-db)))
 
   (is (= #{[#time/inst "2017-01-01T00:00:00Z"]}
          (api/query
           {:query '[:find ?inst :where [_ :user/created-at ?inst]]
-           :args [(d/db (create-populated-conn))]})))
+           :args [populated-db]})))
 
   (is (thrown-with-msg? Exception #"The first input must be a datomic DB so that datomic-type-extensions can deserialize."
                         (api/q '[:find ?inst :in ?e $ :where [?e :user/created-at ?inst]]
-                               [:user/email "foo@example.com"] (d/db (create-populated-conn)))))
+                               [:user/email "foo@example.com"] populated-db)))
 
   (testing "Return Maps"
-    ;; Return maps is a datomic feature that allows a query to return a sequence of maps.
-    ;;
     ;; Datomic docs for return maps: https://docs.datomic.com/query/query-data-reference.html#return-maps
     (is (= '({:created-at #time/inst "2017-01-01T00:00:00.000-00:00"
               :email "foo@example.com"})
@@ -393,13 +391,13 @@
                     :where
                     [?e :user/email ?email]
                     [?e :user/created-at ?created-at]]
-                  (d/db (create-populated-conn)))))))
+                  populated-db)))))
 
 (deftest stats
   (testing "Query stats returns map with result set in :ret"
     (let [result (api/query
                   {:query '[:find ?inst :where [_ :user/created-at ?inst]]
-                   :args [(d/db (create-populated-conn))]
+                   :args [populated-db]
                    :query-stats true})]
       (is (= #{[#time/inst "2017-01-01T00:00:00Z"]}
              (:ret result)))
@@ -407,7 +405,7 @@
   (testing "IO stats returns map with result set in :ret"
     (let [result (api/query
                   {:query '[:find ?inst :where [_ :user/created-at ?inst]]
-                   :args [(d/db (create-populated-conn))]
+                   :args [populated-db]
                    :io-context :user/created-at})]
       (is (= #{[#time/inst "2017-01-01T00:00:00Z"]}
              (:ret result)))
