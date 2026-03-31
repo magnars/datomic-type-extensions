@@ -111,6 +111,9 @@
         db (first args)
         _ (when-not (instance? datomic.db.Db db)
             (throw (Exception. "The first input must be a datomic DB so that datomic-type-extensions can deserialize.")))
+        return-map-keys (query/return-map-keys query)
+        _ (when return-map-keys
+            (query/validate-return-maps-query! query return-map-keys))
         attr->attr-info (find-attr->attr-info db)
         has-stats? (boolean (seq (select-keys query-map [:io-context :query-stats])))
         query-result (d/query
@@ -121,7 +124,7 @@
         (query/deserialize-by-pattern
          (query/deserialization-pattern query attr->attr-info)
          attr->attr-info)
-        (query/return-maps (query/return-map-keys query))
+        (query/return-maps return-map-keys)
         (cond->> has-stats? (assoc query-result :ret)))))
 
 (defn q [q & inputs]

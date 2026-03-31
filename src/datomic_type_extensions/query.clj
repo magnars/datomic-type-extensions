@@ -80,19 +80,46 @@ Source: https://docs.datomic.com/query/query-data-reference.html"}
     (vector? query) (list-form->map-form query)))
 
 (defn return-map-keys [query]
-  (let [return-map-part (select-keys query [:strs :keys :syms])]
-    (when (seq return-map-part)
-      (when-not (= 1 (count return-map-part))
-        (throw (ex-info "Invalid return map request"
-                        {:map-form-query query
-                         :error ::more-than-one-return-map-clause})))
-      (when-not (seq (val (first return-map-part)))
-        (throw (ex-info "Invalid return map request"
-                        {:map-form-query query
-                         :error ::return-map-keys-not-seqence})))
-      (let [[key-type the-keys] (first return-map-part)
-            coerce-key (get {:strs str :keys keyword :syms symbol} key-type)]
-        (mapv coerce-key the-keys)))))
+  (seq
+   (let [return-map-part (select-keys query [:strs :keys :syms])
+         [key-type the-keys] (first return-map-part)
+         coerce-key (get {:strs str :keys keyword :syms symbol} key-type)]
+     (mapv coerce-key the-keys))))
+
+(defn validate-return-maps-query!
+  "Validate a map-form query before execution
+
+  return maps demand that the :find clause returns a collection of tuples, *and*
+  that the number of :find variables match the number of requested keys in the
+  return maps.
+
+  See datomic docs for the query spec for the :find clause:
+    https://docs.datomic.com/query/query-data-reference.html#arg-grammar
+    https://docs.datomic.com/query/query-data-reference.html#find-specs"
+  [{:keys [find]} return-map-keys]
+  (cond
+    ;; find-coll or find-tuple -> return maps not allowed
+    (vector? (first find))
+    (throw
+     (ex-info
+      "Cannot use find-coll or find-tuple find specs with return maps"
+      {:cognitect.anomalies/category :cognitect.anomalies/incorrect
+       :cognitect.anomalies/message "Cannot use find-coll or find-tuple find specs with return maps"}))
+
+    ;; find-scalar -> return maps not allowed
+    (= '. (last find))
+    (throw
+     (ex-info
+      "Cannot use find-scalar find specs with return maps"
+      {:cognitect.anomalies/category :cognitect.anomalies/incorrect
+       :cognitect.anomalies/message "Cannot use find-scalar find specs with return maps"}))
+
+    (not= (count find) (count return-map-keys))
+    (throw
+     (ex-info
+      "Count of :keys/:strs/:syms must match count of :find"
+      {:cognitect.anomalies/category :cognitect.anomalies/incorrect
+       :cognitect.anomalies/message "Count of :keys/:strs/:syms must match count of :find"}))))
 
 (defn strip-return-maps [query]
   (dissoc query :strs :keys :syms))

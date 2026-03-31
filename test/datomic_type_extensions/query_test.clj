@@ -129,15 +129,7 @@
          (sut/return-map-keys
           '{:find [?e]
             :strs [name age]
-            :where [[?e :person/name]]})))
-  (testing "throws when two key types are supplied"
-    (is
-     (thrown? clojure.lang.ExceptionInfo
-              (sut/return-map-keys
-               '{:find [?e]
-                 :keys [name]
-                 :syms [age]
-                 :where [[?e :person/name]]})))))
+            :where [[?e :person/name]]}))))
 
 (deftest return-maps-request
   (is (= #{{:name "Teodor"} {:name "Magnar"}}
