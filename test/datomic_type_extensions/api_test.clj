@@ -150,6 +150,10 @@
    {:db/ident :user/updated-at
     :dte/valueType :java.time/instant
     :db/cardinality :db.cardinality/one}
+   {:db/ident :user/favorite-foods
+    :db/valueType :db.type/tuple
+    :db/tupleType :db.type/keyword
+    :db/cardinality :db.cardinality/one}
    {:db/ident :client/id
     :db/unique :db.unique/identity
     :dte/valueType :keyword-backed-by-string
@@ -194,7 +198,8 @@
       [{:client/id :the-client
         :client/users [{:user/email "foo@example.com"
                         :user/created-at #time/inst "2017-01-01T00:00:00Z"
-                        :user/demands [:peace :love :happiness]}]}])
+                        :user/demands [:peace :love :happiness]
+                        :user/favorite-foods [:pizza :lasagna :haggis]}]}])
     conn))
 
 (deftest entity
@@ -202,7 +207,7 @@
                                    [:user/email "foo@example.com"])]
     (testing "deserializes registered attributes"
       (is (= #time/inst "2017-01-01T00:00:00Z" (:user/created-at wrapped-entity)))
-      (is (= #{:peace :love :happiness} (set (:user/demands wrapped-entity)))))
+      (is (= #{:peace :love :happiness} (:user/demands wrapped-entity))))
 
     (testing "leaves unregistered attributes alone"
       (is (= "foo@example.com" (:user/email wrapped-entity))))
@@ -221,10 +226,16 @@
 
     (testing "works with (keys ,,,)"
       (is (= (set (keys wrapped-entity))
-             #{:user/email :user/demands :user/created-at})))
+             #{:user/email :user/demands :user/created-at :user/favorite-foods})))
 
     (testing "keeps type when emptied"
-      (is (= wrapped-entity (empty wrapped-entity)))))
+      (is (= wrapped-entity (empty wrapped-entity))))
+
+    (testing "preserves coll types"
+      (testing ":db.type/ref with :db.cardinality/many is a set"
+        (is (set? (:user/demands wrapped-entity))))
+      (testing ":db.type/tuple is a vector"
+        (is (vector? (:user/favorite-foods wrapped-entity))))))
 
   (testing "can use entity lookup ref"
     (is (not (nil? (api/entity (d/db (create-populated-conn))
@@ -262,7 +273,8 @@
         (is (= {:db/id (:db/id (first (:client/users datomic-entity)))
                 :user/created-at #time/inst "2017-01-01T00:00:00Z"
                 :user/email "foo@example.com"
-                :user/demands #{:peace :love :happiness}}
+                :user/demands #{:peace :love :happiness}
+                :user/favorite-foods [:pizza :lasagna :haggis]}
                (edn/read-string {:readers *data-readers*}
                                 (pr-str (d/touch (first (:client/users wrapped-entity)))))))))
 
