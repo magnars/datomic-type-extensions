@@ -76,6 +76,6 @@
     (TypeExtendedEntityMap. x attr->attr-info (atom false))
 
     (coll? x)
-    (set (map #(wrap % attr->attr-info) x))
+    (into (empty x) (map #(wrap % attr->attr-info) x))
 
     :else x))
