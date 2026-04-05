@@ -163,7 +163,18 @@
     :db/cardinality :db.cardinality/many}
    {:db/ident :client/admin
     :db/valueType :db.type/ref
-    :db/cardinality :db.cardinality/one}])
+    :db/cardinality :db.cardinality/one}
+   {:db/ident       :person/id
+    :db/valueType   :db.type/string
+    :db/cardinality :db.cardinality/one
+    :db/unique      :db.unique/identity}
+   {:db/ident       :person/children
+    :db/valueType   :db.type/ref
+    :db/cardinality :db.cardinality/many
+    :db/isComponent true}
+   {:db/ident       :person/friends
+    :db/valueType   :db.type/ref
+    :db/cardinality :db.cardinality/many}])
 
 (defn create-migrated-conn []
   (let [conn (create-conn)]
@@ -199,7 +210,12 @@
         :client/users [{:user/email "foo@example.com"
                         :user/created-at #time/inst "2017-01-01T00:00:00Z"
                         :user/demands [:peace :love :happiness]
-                        :user/favorite-foods [:pizza :lasagna :haggis]}]}])
+                        :user/favorite-foods [:pizza :lasagna :haggis]}]}
+       {:person/id "parent1"
+        :person/children [{:person/id "child1"}
+                          {:person/id "child2"}
+                          {:person/id "child3"}]
+        :person/friends [{:person/id "sibling1"}]}])
     conn))
 
 (deftest entity
@@ -256,18 +272,21 @@
 
     (testing "printing"
       (testing "defaults to only show :db/id"
-        (is (= (let [client-db-id (:db/id datomic-entity)]
-                 {:db/id client-db-id})
-               (edn/read-string (pr-str wrapped-entity)))))
+        (let [client-db-id (:db/id datomic-entity)
+              untouched-entity (api/entity db [:client/id :the-client])]
+          (is (= {:db/id client-db-id}
+                 (edn/read-string (pr-str untouched-entity))))))
 
       (testing "shows all attributes when entity has been touched"
-        (is (= (let [client-db-id (:db/id datomic-entity)
-                     user-db-id (:db/id (first (:client/users datomic-entity)))]
-                 {:client/id :the-client
-                  :client/users #{{:db/id user-db-id}}
-                  :db/id client-db-id})
-               (edn/read-string {:readers *data-readers*}
-                                (pr-str (d/touch wrapped-entity))))))
+        (is (= #{:db/id :client/users :client/id}
+               (set (keys (edn/read-string {:readers *data-readers*}
+                                           (pr-str (d/touch wrapped-entity))))))))
+
+      (testing "shows the same values as datomic entity when touched"
+        (let [datomic-entity (datomic.api/entity (d/db (create-populated-conn)) [:person/id "parent1"])
+              wrapped-entity (api/entity (d/db (create-populated-conn)) [:person/id "parent1"])]
+          (is (= (edn/read-string (pr-str (d/touch datomic-entity)))
+                 (edn/read-string (pr-str (d/touch wrapped-entity)))))))
 
       (testing "shows deserialized value of type extended attributes"
         (is (= {:db/id (:db/id (first (:client/users datomic-entity)))
