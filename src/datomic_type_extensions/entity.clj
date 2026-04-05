@@ -48,7 +48,7 @@
 
   datomic.Entity
   (db [_]                   (assoc (.db entity) :datomic-type-extensions.api/attr->attr-info attr->attr-info))
-  (get [_ k]                (wrap (.get entity k) attr->attr-info))
+  (get [this k]             (get-attr this k))
   (keySet [_]               (.keySet entity))
   (touch [this]             (do (.touch entity)
                                 (reset! touched? true)
