@@ -44,29 +44,48 @@
 
 ;; datomic.api
 
-(defn transact [connection tx-data]
-  (d/transact connection (prepare-tx-data (d/db connection) tx-data)))
+(defn transact
+  ([connection tx-data]
+   (d/transact connection (prepare-tx-data (d/db connection) tx-data)))
+  ([connection tx-data & opts]
+   (apply d/transact connection (prepare-tx-data (d/db connection) tx-data) opts)))
 
-(defn transact-async [connection tx-data]
-  (d/transact-async connection (prepare-tx-data (d/db connection) tx-data)))
+(defn transact-async
+  ([connection tx-data]
+   (d/transact-async connection (prepare-tx-data (d/db connection) tx-data)))
+  ([connection tx-data & opts]
+   (apply d/transact-async connection (prepare-tx-data (d/db connection) tx-data) opts)))
 
-(defn with [db tx-data]
-  (d/with db (prepare-tx-data db tx-data)))
+(defn with
+  ([db tx-data]
+   (d/with db (prepare-tx-data db tx-data)))
+  ([db tx-data & opts]
+   (apply d/with db (prepare-tx-data db tx-data) opts)))
 
 (defn entity [db eid]
   (let [attr->attr-info (find-attr->attr-info db)]
     (entity/wrap (d/entity db (core/serialize-lookup-ref attr->attr-info eid))
                  attr->attr-info)))
 
-(defn pull [db pattern eid]
-  (let [attr->attr-info (find-attr->attr-info db)]
-    (->> (d/pull db pattern (core/serialize-lookup-ref attr->attr-info eid))
-         (core/deserialize attr->attr-info))))
+(defn pull
+  ([db pattern eid]
+   (let [attr->attr-info (find-attr->attr-info db)]
+     (->> (d/pull db pattern (core/serialize-lookup-ref attr->attr-info eid))
+          (core/deserialize attr->attr-info))))
+  ([db pattern eid & opts]
+   (let [attr->attr-info (find-attr->attr-info db)]
+     (->> (apply d/pull db pattern (core/serialize-lookup-ref attr->attr-info eid) opts)
+          (core/deserialize attr->attr-info)))))
 
-(defn pull-many [db pattern eids]
-  (let [attr->attr-info (find-attr->attr-info db)]
-    (->> (d/pull-many db pattern (map #(core/serialize-lookup-ref attr->attr-info %) eids))
-         (core/deserialize attr->attr-info))))
+(defn pull-many
+  ([db pattern eids]
+   (let [attr->attr-info (find-attr->attr-info db)]
+     (->> (d/pull-many db pattern (map #(core/serialize-lookup-ref attr->attr-info %) eids))
+          (core/deserialize attr->attr-info))))
+  ([db pattern eids & opts]
+   (let [attr->attr-info (find-attr->attr-info db)]
+     (->> (apply d/pull-many db pattern (map #(core/serialize-lookup-ref attr->attr-info %) eids) opts)
+          (core/deserialize attr->attr-info)))))
 
 (defn since [db t]
   (assoc (d/since db t) ::attr->attr-info (find-attr->attr-info db)))
