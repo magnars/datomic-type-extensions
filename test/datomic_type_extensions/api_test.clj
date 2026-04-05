@@ -206,7 +206,7 @@
   (let [wrapped-entity (api/entity (d/db (create-populated-conn))
                                    [:user/email "foo@example.com"])]
     (testing "deserializes registered attributes"
-      (is (= #time/inst "2017-01-01T00:00:00Z" (:user/created-at wrapped-entity)))
+      (is (= #time/inst "2017-01-01T00:00:00Z" (:user/created-at wrapped-entity) (.get wrapped-entity :user/created-at)))
       (is (= #{:peace :love :happiness} (:user/demands wrapped-entity))))
 
     (testing "leaves unregistered attributes alone"
