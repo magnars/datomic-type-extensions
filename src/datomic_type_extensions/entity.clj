@@ -20,7 +20,7 @@
                          attr-info
                          val)))
 
-(deftype TypeExtendedEntityMap [^EntityMap entity attr->attr-info touched?]
+(deftype TypeExtendedEntityMap [^EntityMap entity attr->attr-info]
   Object
   (hashCode [_]             (hash [(.hashCode entity) attr->attr-info]))
   (equals [this o]          (and (instance? TypeExtendedEntityMap o)
@@ -51,7 +51,6 @@
   (get [this k]             (get-attr this k))
   (keySet [_]               (.keySet entity))
   (touch [this]             (do (.touch entity)
-                                (reset! touched? true)
                                 this)))
 
 (defn- equiv-entity [^TypeExtendedEntityMap e1 ^TypeExtendedEntityMap e2]
@@ -59,26 +58,30 @@
           (let [^EntityMap em (.entity e2)] em)))
 
 (defmethod print-method TypeExtendedEntityMap [entity writer]
-  (print-method (merge {:db/id (:db/id entity)}
-                       (when @(.-touched? entity)
-                         (into {} entity)))
+  (print-method (wrap (.cache (.-entity entity)) (.-attr->attr-info entity))
                 writer))
-
-(defn wrap
-  [x attr->attr-info]
-  (cond
-    (instance? datomic.Entity x)
-    (TypeExtendedEntityMap. x attr->attr-info (atom false))
-
-    (coll? x)
-    (into (empty x) (map #(wrap % attr->attr-info) x))
-
-    :else x))
 
 (defn get-attr*
   [attr->attr-info attr val]
   (either (deserialize-attr attr->attr-info attr val)
           (wrap val attr->attr-info)))
+
+(defn wrap
+  [x attr->attr-info]
+  (cond
+    (instance? datomic.Entity x)
+    (TypeExtendedEntityMap. x attr->attr-info)
+
+    (map-entry? x)
+    (let [[k v] x]
+      (clojure.lang.MapEntry.
+        k
+        (get-attr* attr->attr-info k v)))
+
+    (coll? x)
+    (into (empty x) (map #(wrap % attr->attr-info) x))
+
+    :else x))
 
 (defn get-attr
   ([^TypeExtendedEntityMap entity attr]
