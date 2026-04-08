@@ -140,16 +140,24 @@ on the data migration.
 With tools.deps:
 
 ```clj
-datomic-type-extensions/datomic-type-extensions {:mvn/version "2025.01.24"}
+datomic-type-extensions/datomic-type-extensions {:mvn/version "2026.04.08"}
 ```
 
 With Leiningen:
 
 ```clj
-[datomic-type-extensions "2025.01.24"]
+[datomic-type-extensions "2026.04.08"]
 ```
 
 ## Changes
+
+#### From 2025.01.24 to 2026.04.08
+
+- Pass along any options to transact, transact-async, with, pull, and pull-many
+- Show cached values on entity print
+- Return tuples as vectors in the Entity api
+
+All by ([Tormod Mathiesen](https://github.com/2food)). Thanks!
 
 #### From 2024.11.20 to 2025.01.24
 
