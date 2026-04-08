@@ -3,3 +3,5 @@
 /pom.xml
 /.lein-failures
 /pom.xml.asc
+/.clj-kondo/
+/.lsp/
