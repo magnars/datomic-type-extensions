@@ -389,45 +389,42 @@
 
 (deftest q-return-maps
   (testing "legitimate query"
-    (is (= #{{:user/email "foo@example.com", :user/demands :peace}
-             {:user/email "foo@example.com", :user/demands :happiness}
-             {:user/email "foo@example.com", :user/demands :love}}
-           (set
+    (is (= (set
             (api/q '[:find ?email ?demand
                      :keys user/email user/demands
                      :where
                      [?user :user/email ?email]
                      [?user :user/demands ?demand]]
-                   populated-db)))))
+                   populated-db))
+           #{{:user/email "foo@example.com", :user/demands :peace}
+             {:user/email "foo@example.com", :user/demands :happiness}
+             {:user/email "foo@example.com", :user/demands :love}})))
 
   (testing "find-coll or find-tuple"
-    (is (= {:cognitect.anomalies/category :cognitect.anomalies/incorrect,
-            :cognitect.anomalies/message
-            "Cannot use find-coll or find-tuple find specs with return maps"}
-           (ex-data
+    (is (= (ex-data
             (extract-exception
              (api/q '[:find [?email ...]
                       :keys user/email
                       :where [_ :user/email ?email]]
-                    populated-db))))))
+                    populated-db)))
+           {:cognitect.anomalies/category :cognitect.anomalies/incorrect,
+            :cognitect.anomalies/message
+            "Cannot use find-coll or find-tuple find specs with return maps"})))
 
   (testing "find-scalar"
-    (is (= {:cognitect.anomalies/category :cognitect.anomalies/incorrect,
-            :cognitect.anomalies/message
-            "Cannot use find-scalar find specs with return maps"}
-           (ex-data
+    (is (= (ex-data
             (extract-exception
              #_{:clj-kondo/ignore [:datalog-syntax]}
              (api/q '[:find ?email .
                       :keys user/email
                       :where [_ :user/email ?email]]
-                    populated-db))))))
+                    populated-db)))
+           {:cognitect.anomalies/category :cognitect.anomalies/incorrect,
+            :cognitect.anomalies/message
+            "Cannot use find-scalar find specs with return maps"})))
 
   (testing "Count of :keys/:strs/:syms must match count of :find"
-    (is (= {:cognitect.anomalies/category :cognitect.anomalies/incorrect,
-            :cognitect.anomalies/message
-            "Count of :keys/:strs/:syms must match count of :find"}
-           (ex-data
+    (is (= (ex-data
             (extract-exception
              #_{:clj-kondo/ignore [:datalog-syntax]}
              (api/q '[:find ?email ?demands
@@ -435,16 +432,19 @@
                       :where
                       [?u :user/email ?email]
                       [?u :user/demands ?demands]]
-                    populated-db))))))
+                    populated-db)))
+           {:cognitect.anomalies/category :cognitect.anomalies/incorrect,
+            :cognitect.anomalies/message
+            "Count of :keys/:strs/:syms must match count of :find"})))
 
   (testing "Empty result set prior to conversion to return maps"
-    (is (= []
-           (api/q '[:find ?demand
+    (is (= (api/q '[:find ?demand
                     :keys user/demand
                     :where
                     [?u :user/email "Glorfindel@lothlorien.net"]
                     [?u :user/demands ?demand]]
-                  populated-db)))))
+                  populated-db)
+           []))))
 
 (deftest stats
   (testing "Query stats returns map with result set in :ret"
