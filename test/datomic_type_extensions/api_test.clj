@@ -58,14 +58,7 @@
                             1))))
 
 (deftest serialize-tx-data
-  (is (= [{:db/id 123 :user/created-at #inst "2017-01-01T00:00:00"}
-          [:db/retract 123 :user/updated-at #inst "2017-02-02T00:00:00"]
-          [:db/retract 123 :user/updated-at]
-          [:db/add 456 :client/id "the-client"]
-          [:db/add 123 :user/name "no serialization needed"]
-          [:db/add 123 :user/demands ["peace" "love" "happiness"]]
-          [:db/add 123 :user/edn "[1 2 3]"]]
-         (core/serialize-tx-data
+  (is (= (core/serialize-tx-data
           attr->attr-info
           [{:db/id 123 :user/created-at #time/inst "2017-01-01T00:00:00Z"}
            [:db/retract 123 :user/updated-at #time/inst "2017-02-02T00:00:00Z"]
@@ -73,7 +66,14 @@
            [:db/add 456 :client/id :the-client]
            [:db/add 123 :user/name "no serialization needed"]
            [:db/add 123 :user/demands [:peace :love :happiness]]
-           [:db/add 123 :user/edn [1 2 3]]])))
+           [:db/add 123 :user/edn [1 2 3]]])
+         [{:db/id 123 :user/created-at #inst "2017-01-01T00:00:00"}
+          [:db/retract 123 :user/updated-at #inst "2017-02-02T00:00:00"]
+          [:db/retract 123 :user/updated-at]
+          [:db/add 456 :client/id "the-client"]
+          [:db/add 123 :user/name "no serialization needed"]
+          [:db/add 123 :user/demands ["peace" "love" "happiness"]]
+          [:db/add 123 :user/edn "[1 2 3]"]]))
 
   (testing "serialize and deserialize symmetry for nested dte-backed types"
     (let [data {:user/edn {:user/created-at #time/inst "2017-01-01T00:00:00Z"}}]
@@ -81,36 +81,45 @@
              data))))
 
   (testing "nested maps"
-    (is (= [{:client/users [{:user/created-at #inst "2017-01-01T00:00:00.000-00:00"}
-                            {:user/created-at #inst "2018-01-01T00:00:00.000-00:00"}]
-             :client/admin {:user/created-at #inst "2016-01-01T00:00:00"}}]
-           (core/serialize-tx-data
+    (is (= (core/serialize-tx-data
             attr->attr-info
             [{:client/users [{:user/created-at #time/inst "2017-01-01T00:00:00Z"}
                              {:user/created-at #time/inst "2018-01-01T00:00:00Z"}]
-              :client/admin {:user/created-at #time/inst "2016-01-01T00:00:00Z"}}]))))
+              :client/admin {:user/created-at #time/inst "2016-01-01T00:00:00Z"}}])
+           [{:client/users [{:user/created-at #inst "2017-01-01T00:00:00.000-00:00"}
+                            {:user/created-at #inst "2018-01-01T00:00:00.000-00:00"}]
+             :client/admin {:user/created-at #inst "2016-01-01T00:00:00"}}])))
 
   (testing "multiple values"
-    (is (= [{:user/demands ["peace" "love" "happiness"]}]
-           (core/serialize-tx-data attr->attr-info [{:user/demands [:peace :love :happiness]}]))))
+    (is (= (core/serialize-tx-data attr->attr-info [{:user/demands [:peace :love :happiness]}])
+           [{:user/demands ["peace" "love" "happiness"]}])))
 
   (testing "edn value"
-    (is (= [{:user/demands ["peace" "love" "happiness"]}]
-           (core/serialize-tx-data attr->attr-info [{:user/demands [:peace :love :happiness]}]))))
+    (is (= (core/serialize-tx-data attr->attr-info [{:user/demands [:peace :love :happiness]}])
+           [{:user/demands ["peace" "love" "happiness"]}])))
 
   (testing "nested tx-data"
-    (is (= {:conformity {:txs [[[:db/add 456 :client/id "the-client"]]]}}
-           (core/serialize-tx-data
+    (is (= (core/serialize-tx-data
             attr->attr-info
-            {:conformity {:txs [[[:db/add 456 :client/id :the-client]]]}})))))
+            {:conformity {:txs [[[:db/add 456 :client/id :the-client]]]}})
+           {:conformity {:txs [[[:db/add 456 :client/id "the-client"]]]}}))))
 
 (deftest serialize-lookup-ref
-  (is (= 123 (core/serialize-lookup-ref attr->attr-info 123)))
-  (is (= [:client/id "the-client"]
-         (core/serialize-lookup-ref attr->attr-info [:client/id :the-client]))))
+  (is (= (core/serialize-lookup-ref attr->attr-info 123)
+         123))
+  (is (= (core/serialize-lookup-ref attr->attr-info [:client/id :the-client])
+         [:client/id "the-client"])))
 
 (deftest add-backing-types
-  (is (= [{:db/ident :user/created-at
+  (is (= (api/add-backing-types
+          [{:db/ident :user/created-at
+            :dte/valueType :java.time/instant
+            :db/cardinality :db.cardinality/one}
+           {:db/ident :client/id
+            :db/unique :db.unique/identity
+            :dte/valueType :keyword-backed-by-string
+            :db/cardinality :db.cardinality/one}])
+         [{:db/ident :user/created-at
            :db/valueType :db.type/instant
            :dte/valueType :java.time/instant
            :db/cardinality :db.cardinality/one}
@@ -118,15 +127,7 @@
            :db/unique :db.unique/identity
            :db/valueType :db.type/string
            :dte/valueType :keyword-backed-by-string
-           :db/cardinality :db.cardinality/one}]
-         (api/add-backing-types
-          [{:db/ident :user/created-at
-            :dte/valueType :java.time/instant
-            :db/cardinality :db.cardinality/one}
-           {:db/ident :client/id
-            :db/unique :db.unique/identity
-            :dte/valueType :keyword-backed-by-string
-            :db/cardinality :db.cardinality/one}]))))
+           :db/cardinality :db.cardinality/one}])))
 
 (defn create-conn []
   (let [url (str "datomic:mem://" (d/squuid))]
@@ -184,23 +185,23 @@
     conn))
 
 (deftest find-attr->attr-info
-  (is (= {:user/created-at (attr-info :java.time/instant)
+  (is (= (api/find-attr->attr-info (d/db (create-migrated-conn)))
+         {:user/created-at (attr-info :java.time/instant)
           :user/updated-at (attr-info :java.time/instant)
           :user/demands (attr-info :keyword-backed-by-string :db.cardinality/many)
           :user/leaves-empty (attr-info :keyword-backed-by-string :db.cardinality/many)
-          :client/id (attr-info :keyword-backed-by-string)}
-         (api/find-attr->attr-info (d/db (create-migrated-conn))))))
+          :client/id (attr-info :keyword-backed-by-string)})))
 
 (deftest transact-async
-  (is (= {:user/created-at #inst "2017-01-01T00:00:00"}
-         (let [conn (create-migrated-conn)]
+  (is (= (let [conn (create-migrated-conn)]
            (api/transact-async conn
                                [{:user/email "foo@example.com"
                                  :user/created-at #time/inst "2017-01-01T00:00:00Z"}])
            (d/sync conn)
            (d/pull (d/db conn)
                    [:user/created-at]
-                   [:user/email "foo@example.com"])))))
+                   [:user/email "foo@example.com"]))
+         {:user/created-at #inst "2017-01-01T00:00:00"})))
 
 (defn create-populated-conn []
   (let [conn (create-migrated-conn)]
@@ -224,16 +225,20 @@
   (let [wrapped-entity (api/entity populated-db
                                    [:user/email "foo@example.com"])]
     (testing "deserializes registered attributes"
-      (is (= #time/inst "2017-01-01T00:00:00Z" (:user/created-at wrapped-entity) (.get wrapped-entity :user/created-at)))
-      (is (= #{:peace :love :happiness} (:user/demands wrapped-entity))))
+      (is (= (:user/created-at wrapped-entity)
+             (.get wrapped-entity :user/created-at)
+             #time/inst "2017-01-01T00:00:00Z"))
+      (is (= (:user/demands wrapped-entity)
+             #{:peace :love :happiness})))
 
     (testing "leaves unregistered attributes alone"
-      (is (= "foo@example.com" (:user/email wrapped-entity))))
+      (is (= (:user/email wrapped-entity)
+             "foo@example.com")))
 
     (testing "implements Associative"
-      (is (= {:user/created-at #time/inst "2017-01-01T00:00:00Z"
-              :user/email "foo@example.com"}
-             (select-keys wrapped-entity #{:user/created-at :user/email :client/id :foo/bar}))))
+      (is (= (select-keys wrapped-entity #{:user/created-at :user/email :client/id :foo/bar})
+             {:user/created-at #time/inst "2017-01-01T00:00:00Z"
+              :user/email "foo@example.com"})))
 
     (testing "implements ILookup"
       (is (= (.valAt wrapped-entity :user/email) "foo@example.com"))
@@ -265,23 +270,24 @@
     (testing "equality semantics"
       (is (not= datomic-entity wrapped-entity))
       (is (not= wrapped-entity datomic-entity))
-      (is (= wrapped-entity (api/entity populated-db [:client/id :the-client]))))
+      (is (= (api/entity populated-db [:client/id :the-client])
+             wrapped-entity)))
 
     (testing "deserializes nested entity attributes"
-      (is (= #time/inst "2017-01-01T00:00:00Z"
-             (-> wrapped-entity :client/users first :user/created-at))))
+      (is (= (-> wrapped-entity :client/users first :user/created-at)
+             #time/inst "2017-01-01T00:00:00Z")))
 
     (testing "printing"
       (testing "defaults to only show :db/id"
         (let [client-db-id (:db/id datomic-entity)
               untouched-entity (api/entity populated-db [:client/id :the-client])]
-          (is (= {:db/id client-db-id}
-                 (edn/read-string (pr-str untouched-entity))))))
+          (is (= (edn/read-string (pr-str untouched-entity))
+                 {:db/id client-db-id}))))
 
       (testing "shows all attributes when entity has been touched"
-        (is (= #{:db/id :client/users :client/id}
-               (set (keys (edn/read-string {:readers *data-readers*}
-                                           (pr-str (d/touch wrapped-entity))))))))
+        (is (= (set (keys (edn/read-string {:readers *data-readers*}
+                                           (pr-str (d/touch wrapped-entity)))))
+               #{:db/id :client/users :client/id})))
 
       (testing "shows the same values as datomic entity when touched"
         (let [datomic-entity (datomic.api/entity (d/db (create-populated-conn)) [:person/id "parent1"])
@@ -290,29 +296,29 @@
                  (edn/read-string (pr-str (d/touch wrapped-entity)))))))
 
       (testing "shows deserialized value of type extended attributes"
-        (is (= {:db/id (:db/id (first (:client/users datomic-entity)))
+        (is (= (edn/read-string {:readers *data-readers*}
+                                (pr-str (d/touch (first (:client/users wrapped-entity)))))
+               {:db/id (:db/id (first (:client/users datomic-entity)))
                 :user/created-at #time/inst "2017-01-01T00:00:00Z"
                 :user/email "foo@example.com"
                 :user/demands #{:peace :love :happiness}
-                :user/favorite-foods [:pizza :lasagna :haggis]}
-               (edn/read-string {:readers *data-readers*}
-                                (pr-str (d/touch (first (:client/users wrapped-entity)))))))))
+                :user/favorite-foods [:pizza :lasagna :haggis]}))))
 
     (testing "hashes differently"
       (is (not= (hash datomic-entity)
                 (hash wrapped-entity))))))
 
 (deftest pull
-  (is (= {:client/users [{:user/created-at #time/inst "2017-01-01T00:00:00Z"}]}
-         (api/pull populated-db
+  (is (= (api/pull populated-db
                    [{:client/users [:user/created-at]}]
-                   [:client/id :the-client])))
+                   [:client/id :the-client])
+         {:client/users [{:user/created-at #time/inst "2017-01-01T00:00:00Z"}]}))
 
-  (is (= [{:client/id :the-client
-           :client/users [{:user/created-at #time/inst "2017-01-01T00:00:00Z"}]}]
-         (api/pull-many populated-db
+  (is (= (api/pull-many populated-db
                         [:client/id {:client/users [:user/created-at]}]
-                        [[:client/id :the-client]]))))
+                        [[:client/id :the-client]])
+         [{:client/id :the-client
+           :client/users [{:user/created-at #time/inst "2017-01-01T00:00:00Z"}]}])))
 
 (deftest since
   (let [conn (create-migrated-conn)
@@ -320,30 +326,30 @@
         _ (api/transact conn [{:user/email "bar@example.com"
                                :user/created-at #time/inst "2018-01-01T00:00:00Z"}])
         db-since (api/since (d/db conn) t)]
-    (is (= #time/inst "2018-01-01T00:00:00Z"
-           (:user/created-at (api/entity db-since [:user/email "bar@example.com"]))))
-    (is (= db-since
-           (api/entity-db (api/entity db-since [:user/email "bar@example.com"]))))))
+    (is (= (:user/created-at (api/entity db-since [:user/email "bar@example.com"]))
+           #time/inst "2018-01-01T00:00:00Z"))
+    (is (= (api/entity-db (api/entity db-since [:user/email "bar@example.com"]))
+           db-since))))
 
 (deftest with
-  (is (= {:client/users [{:user/created-at #time/inst "2017-01-01T00:00:00Z"}
-                         {:user/created-at #time/inst "2017-02-01T00:00:00Z"}]}
-         (api/pull (:db-after (api/with populated-db
+  (is (= (api/pull (:db-after (api/with populated-db
                                         [{:client/id :the-client
                                           :client/users [{:user/email "bar@example.com"
                                                           :user/created-at #time/inst "2017-02-01T00:00:00Z"}]}]))
                    [{:client/users [:user/created-at]}]
-                   [:client/id :the-client]))))
+                   [:client/id :the-client])
+         {:client/users [{:user/created-at #time/inst "2017-01-01T00:00:00Z"}
+                         {:user/created-at #time/inst "2017-02-01T00:00:00Z"}]})))
 
 (deftest filter
-  (is (= {:client/id :the-client
-          :client/users [{:user/created-at #time/inst "2017-01-01T00:00:00Z"}]}
-         (let [the-client (api/entity populated-db [:client/id :the-client])
+  (is (= (let [the-client (api/entity populated-db [:client/id :the-client])
                keep-eids (into #{(:db/id the-client)}
                                (map :db/id (:client/users the-client)))]
            (api/pull (api/filter populated-db (fn [_ datom] (some #{(:e datom)} keep-eids)))
                      [:client/id {:client/users [:user/created-at]}]
-                     (:db/id the-client))))))
+                     (:db/id the-client)))
+         {:client/id :the-client
+          :client/users [{:user/created-at #time/inst "2017-01-01T00:00:00Z"}]})))
 
 (deftest history
   (let [conn (create-populated-conn)
@@ -351,32 +357,32 @@
         the-user (api/entity db [:user/email "foo@example.com"])
         changed-db (:db-after @(api/transact conn [{:user/email "foo@example.com"
                                                     :user/created-at #time/inst "2018-01-01T00:00:00Z"}]))]
-    (is (= 3
-           (count
+    (is (= (count
             (api/q '[:find ?created-at ?tx ?op
                      :in $ ?user
                      :where
                      [?user :user/created-at ?created-at ?tx ?op]]
                    (api/history changed-db)
-                   (:db/id the-user)))))))
+                   (:db/id the-user)))
+           3))))
 
 (deftest q
-  (is (= #{[#time/inst "2017-01-01T00:00:00Z"]}
-         (api/q
+  (is (= (api/q
           '[:find ?inst :where [_ :user/created-at ?inst]]
-          populated-db)))
+          populated-db)
+         #{[#time/inst "2017-01-01T00:00:00Z"]}))
 
-  (is (= #{[:the-client {:user/created-at #time/inst "2017-01-01T00:00:00.000Z"}]}
-         (api/q '[:find ?c-id (pull ?e [:user/created-at])
+  (is (= (api/q '[:find ?c-id (pull ?e [:user/created-at])
                   :where
                   [?c :client/id ?c-id]
                   [?c :client/users ?e]]
-                populated-db)))
+                populated-db)
+         #{[:the-client {:user/created-at #time/inst "2017-01-01T00:00:00.000Z"}]}))
 
-  (is (= #{[#time/inst "2017-01-01T00:00:00Z"]}
-         (api/query
+  (is (= (api/query
           {:query '[:find ?inst :where [_ :user/created-at ?inst]]
-           :args [populated-db]})))
+           :args [populated-db]})
+         #{[#time/inst "2017-01-01T00:00:00Z"]}))
 
   (is (thrown-with-msg? Exception #"The first input must be a datomic DB so that datomic-type-extensions can deserialize."
                         (api/q '[:find ?inst :in ?e $ :where [?e :user/created-at ?inst]]
@@ -452,16 +458,16 @@
                   {:query '[:find ?inst :where [_ :user/created-at ?inst]]
                    :args [populated-db]
                    :query-stats true})]
-      (is (= #{[#time/inst "2017-01-01T00:00:00Z"]}
-             (:ret result)))
+      (is (= (:ret result)
+             #{[#time/inst "2017-01-01T00:00:00Z"]}))
       (is (some? (:query-stats result)))))
   (testing "IO stats returns map with result set in :ret"
     (let [result (api/query
                   {:query '[:find ?inst :where [_ :user/created-at ?inst]]
                    :args [populated-db]
                    :io-context :user/created-at})]
-      (is (= #{[#time/inst "2017-01-01T00:00:00Z"]}
-             (:ret result)))
+      (is (= (:ret result)
+             #{[#time/inst "2017-01-01T00:00:00Z"]}))
       (is (some? (:io-stats result))))))
 
 (comment
