@@ -274,7 +274,7 @@
     (testing "printing"
       (testing "defaults to only show :db/id"
         (let [client-db-id (:db/id datomic-entity)
-              untouched-entity (api/entity db [:client/id :the-client])]
+              untouched-entity (api/entity populated-db [:client/id :the-client])]
           (is (= {:db/id client-db-id}
                  (edn/read-string (pr-str untouched-entity))))))
 
