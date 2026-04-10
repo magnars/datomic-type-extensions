@@ -1,4 +1,4 @@
-(defproject datomic-type-extensions "2026.04.08"
+(defproject datomic-type-extensions "2026.04.10"
   :description "A Clojure library that wraps Datomic API functions to add type extensions."
   :url "https://github.com/magnars/datomic-type-extensions"
   :license {:name "Eclipse Public License"
